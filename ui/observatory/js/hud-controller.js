@@ -10,6 +10,8 @@
  * - Quick-select scenario dropdown
  */
 
+import { i18n } from '../../utils/i18n.js';
+
 // ---- Constants ----
 
 export const SCENARIO_NAMES = [
@@ -66,19 +68,19 @@ export const PRESETS = {
 
 // Scenario descriptions shown below the dropdown
 const SCENARIO_DESCRIPTIONS = {
-  auto:              'Auto-cycling through all sensing scenarios.',
-  empty_room:        'Baseline calibration with no human presence in the monitored zone.',
-  single_breathing:  'Detecting vital signs through WiFi signal micro-variations.',
-  two_walking:       'Tracking multiple people simultaneously via CSI multiplex separation.',
-  fall_event:        'Sudden posture-change detection using acceleration feature analysis.',
-  sleep_monitoring:  'Monitoring breathing patterns and apnea events during sleep.',
-  intrusion_detect:  'Passive perimeter monitoring -- no cameras, pure RF sensing.',
-  gesture_control:   'DTW-based gesture recognition from hand/arm motion signatures.',
-  crowd_occupancy:   'Estimating room occupancy count from aggregate CSI variance.',
-  search_rescue:     'Through-wall survivor detection using WiFi-MAT multistatic mode.',
-  elderly_care:      'Continuous gait analysis for early mobility-decline detection.',
-  fitness_tracking:  'Rep counting and exercise classification from body kinematics.',
-  security_patrol:   'Multi-zone presence patrol with camera-free motion heatmaps.',
+  auto:              'obs.description.auto',
+  empty_room:        'obs.description.empty_room',
+  single_breathing:  'obs.description.single_breathing',
+  two_walking:       'obs.description.two_walking',
+  fall_event:        'obs.description.fall_event',
+  sleep_monitoring:  'obs.description.sleep_monitoring',
+  intrusion_detect:  'obs.description.intrusion_detect',
+  gesture_control:   'obs.description.gesture_control',
+  crowd_occupancy:   'obs.description.crowd_occupancy',
+  search_rescue:     'obs.description.search_rescue',
+  elderly_care:      'obs.description.elderly_care',
+  fitness_tracking:  'obs.description.fitness_tracking',
+  security_patrol:   'obs.description.security_patrol',
 };
 
 // Edge modules active per scenario
@@ -154,6 +156,16 @@ export class HudController {
 
     // Track current scenario for description/edge updates
     this._currentScenarioKey = null;
+    this._presenceState = 'absent';
+    i18n.onLocaleChange(() => {
+      this.updateSourceBadge(this._obs.settings.dataSource, this._obs._ws);
+      this._setText('presence-label', i18n.status(this._presenceState));
+      if (this._currentScenarioKey) {
+        this._updateScenarioDescription(this._currentScenarioKey);
+        this._updateEdgeModules(this._currentScenarioKey);
+      }
+      this._setText('fps-counter', i18n.t('obs.fps', { count: this._obs._fpsValue }));
+    });
   }
 
   // ============================================================
@@ -363,9 +375,9 @@ export class HudController {
     const dot = document.querySelector('#data-source-badge .dot');
     const label = document.getElementById('data-source-label');
     if (dataSource === 'ws' && ws?.readyState === WebSocket.OPEN) {
-      dot.className = 'dot dot--live'; label.textContent = 'LIVE';
+      dot.className = 'dot dot--live'; label.textContent = i18n.t('obs.live');
     } else {
-      dot.className = 'dot dot--demo'; label.textContent = 'DEMO';
+      dot.className = 'dot dot--demo'; label.textContent = i18n.t('obs.demo');
     }
   }
 
@@ -430,9 +442,10 @@ export class HudController {
     if (presEl) {
       const ml = cls.motion_level || 'absent';
       presEl.className = 'presence-state';
-      if (ml === 'active') { presEl.classList.add('presence--active'); presLabel.textContent = 'ACTIVE'; }
-      else if (cls.presence) { presEl.classList.add('presence--present'); presLabel.textContent = 'PRESENT'; }
-      else { presEl.classList.add('presence--absent'); presLabel.textContent = 'ABSENT'; }
+      if (ml === 'active') { presEl.classList.add('presence--active'); this._presenceState = 'active'; }
+      else if (cls.presence) { presEl.classList.add('presence--present'); this._presenceState = 'present'; }
+      else { presEl.classList.add('presence--absent'); this._presenceState = 'absent'; }
+      presLabel.textContent = i18n.status(this._presenceState);
     }
 
     const fallEl = document.getElementById('fall-alert');
@@ -546,7 +559,8 @@ export class HudController {
   _updateScenarioDescription(scenarioKey) {
     const el = document.getElementById('scenario-description');
     if (!el) return;
-    el.textContent = SCENARIO_DESCRIPTIONS[scenarioKey] || '';
+    const key = SCENARIO_DESCRIPTIONS[scenarioKey];
+    el.textContent = key ? i18n.t(key) : '';
   }
 
   _updateEdgeModules(scenarioKey) {
@@ -561,7 +575,7 @@ export class HudController {
     bar.style.display = 'flex';
     bar.innerHTML = modules.map(m => {
       const color = MODULE_COLORS[m] || 'var(--text-secondary)';
-      return `<span class="edge-badge" style="--badge-color:${color}">${m}</span>`;
+      return `<span class="edge-badge" style="--badge-color:${color}">${i18n.t(`obs.module.${m}`)}</span>`;
     }).join('');
   }
 }

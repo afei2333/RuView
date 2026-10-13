@@ -8,6 +8,7 @@
  * - Dot-matrix mist body mass, particle trails, WiFi waves, signal field
  * - Reflective floor, settings dialog, and practical data HUD
  */
+import { i18n } from '../../utils/i18n.js';
 import { withWsTicket } from '../../services/ws-ticket.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -395,7 +396,7 @@ class Observatory {
 
   _initKeyboard() {
     window.addEventListener('keydown', (e) => {
-      if (this._hud.settingsOpen) return;
+      if (this._hud.settingsOpen || e.target.closest?.('input, select, textarea, button')) return;
       switch (e.key.toLowerCase()) {
         case 'a':
           this._autopilot = !this._autopilot;
@@ -690,7 +691,7 @@ class Observatory {
       this._fpsFrames = 0;
       this._fpsTime = 0;
       if (this._showFps) {
-        document.getElementById('fps-counter').textContent = `${this._fpsValue} FPS`;
+        document.getElementById('fps-counter').textContent = i18n.t('obs.fps', { count: this._fpsValue });
       }
       this._adaptQuality();
     }

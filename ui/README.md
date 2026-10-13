@@ -48,6 +48,17 @@ ui/
 
 ## Features
 
+### Observatory language
+
+Open `ui/observatory.html` and use the language selector in the top-right corner
+to switch between English and Simplified Chinese. The Observatory shares the
+dashboard's `ruview-locale` preference and detects the browser language when no
+choice is saved. HUD labels, scenario descriptions, module badges, alerts, and
+settings update immediately without restarting the scene or changing its data.
+Language initialization does not depend on the Three.js CDN being available.
+The existing Polish locale remains selectable, with English fallback for
+Observatory-specific messages.
+
 ### WiFi Sensing Tab
 - 3D Gaussian-splat signal field visualization (Three.js)
 - Real-time RSSI, variance, motion band, breathing band metrics
