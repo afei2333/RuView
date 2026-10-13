@@ -10,6 +10,8 @@
 // wallpaper; appearing only when the reading is not trustworthy keeps it
 // meaningful.
 
+import { i18n } from './i18n.js';
+
 import { sensingService } from '../services/sensing.service.js';
 import { openApiAccess } from './connection-status.js';
 
@@ -19,29 +21,29 @@ const BAR_ID = 'ruview-data-source-banner';
 const CONFIG = {
   // 'live' is intentionally absent: no banner is shown for trustworthy data.
   'server-simulated': {
-    text: 'SYNTHETIC DATA — the server is generating this, no hardware is being read',
+    text: 'ui.syntheticDATATheServerIsGeneratingThisNoHardwareIsBeingRead',
     bg: '#7c3a00',
     fg: '#ffd9a0',
   },
   reconnecting: {
-    text: 'RECONNECTING — the display is frozen at the last live reading',
+    text: 'ui.reconnectingTheDisplayIsFrozenAtTheLastLiveReading',
     bg: '#33302a',
     fg: '#e8dcc0',
   },
   unreachable: {
-    text: 'SERVER UNREACHABLE — nothing on this screen is current',
+    text: 'ui.serverUNREACHABLENothingOnThisScreenIsCurrent',
     bg: '#5c1010',
     fg: '#ffc9c9',
   },
   simulated: {
-    text: 'SIMULATED — every value on this screen is invented by your browser, not measured',
+    text: 'ui.simulatedEveryValueOnThisScreenIsInventedByYourBrowserNotMeasured',
     bg: '#6b0f6b',
     fg: '#ffc9ff',
   },
   // #2099: the server refused the stream. Clicking the bar opens API Access.
   'auth-required': {
-    text: 'API TOKEN REQUIRED — this server needs its API token. Click here, or Settings → API Access',
-    textRejected: 'API TOKEN REJECTED — the saved token was refused. Click here, or Settings → API Access',
+    text: 'ui.apiTOKENREQUIREDThisServerNeedsItsAPITokenClickHereOrSettingsAPIAccess',
+    textRejected: 'ui.apiTOKENREJECTEDTheSavedTokenWasRefusedClickHereOrSettingsAPIAccess',
     bg: '#5c1010',
     fg: '#ffc9c9',
   },
@@ -108,6 +110,7 @@ export class DataSourceBanner {
 
     // dataSource changes are published on the state-listener channel.
     this._unsubscribe = sensingService.onStateChange(() => this.render());
+    this._unsubLocale = i18n.onLocaleChange(() => this.render());
     this.render();
   }
 
@@ -122,7 +125,7 @@ export class DataSourceBanner {
     }
 
     this._bar.textContent =
-      cfg.textRejected && sensingService.authRequired === 'rejected' ? cfg.textRejected : cfg.text;
+      i18n.t(cfg.textRejected && sensingService.authRequired === 'rejected' ? cfg.textRejected : cfg.text);
     this._bar.style.cursor = sensingService.dataSource === 'auth-required' ? 'pointer' : '';
     this._bar.style.background = cfg.bg;
     this._bar.style.color = cfg.fg;
@@ -132,6 +135,7 @@ export class DataSourceBanner {
   }
 
   dispose() {
+    this._unsubLocale?.();
     if (this._unsubscribe) {
       this._unsubscribe();
       this._unsubscribe = null;

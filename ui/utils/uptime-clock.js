@@ -1,5 +1,7 @@
 // Uptime Clock - Shows system uptime and current time in header
 
+import { i18n } from './i18n.js';
+
 export class UptimeClock {
   constructor() {
     this.widget = null;
@@ -16,11 +18,12 @@ export class UptimeClock {
   createWidget() {
     this.widget = document.createElement('div');
     this.widget.className = 'uptime-clock';
-    this.widget.setAttribute('aria-label', 'System uptime');
+    this.widget.setAttribute('aria-label', i18n.t('uptime.label'));
+    this.widget.setAttribute('data-i18n-aria', 'uptime.label');
     this.widget.innerHTML = `
       <span class="uptime-time"></span>
       <span class="uptime-separator">|</span>
-      <span class="uptime-duration" title="Session uptime"></span>
+      <span class="uptime-duration" title="Session uptime" data-i18n-title="uptime.session"></span>
     `;
 
     const headerInfo = document.querySelector('.header-info');

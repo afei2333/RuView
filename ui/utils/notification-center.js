@@ -1,6 +1,8 @@
 // Notification Center - Bell icon with event history
 // Persists notifications across page views (sessionStorage)
 
+import { i18n } from './i18n.js';
+
 export class NotificationCenter {
   constructor() {
     this.button = null;
@@ -17,13 +19,16 @@ export class NotificationCenter {
     this.createButton();
     this.createPanel();
     this.interceptEvents();
+    this._unsubLocale = i18n.onLocaleChange(() => this.renderList());
   }
 
   createButton() {
     this.button = document.createElement('button');
     this.button.className = 'notif-bell';
-    this.button.setAttribute('aria-label', 'Notifications');
-    this.button.setAttribute('title', 'Notifications');
+    this.button.setAttribute('aria-label', i18n.t('notifications.title'));
+    this.button.setAttribute('data-i18n-aria', 'notifications.title');
+    this.button.setAttribute('title', i18n.t('notifications.title'));
+    this.button.setAttribute('data-i18n-title', 'notifications.title');
     this.button.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -45,13 +50,14 @@ export class NotificationCenter {
     this.panel = document.createElement('div');
     this.panel.className = 'notif-panel';
     this.panel.setAttribute('role', 'region');
-    this.panel.setAttribute('aria-label', 'Notification history');
+    this.panel.setAttribute('aria-label', i18n.t('notifications.history'));
+    this.panel.setAttribute('data-i18n-aria', 'notifications.history');
     this.panel.innerHTML = `
       <div class="notif-panel-header">
-        <span>Notifications</span>
+        <span data-i18n="notifications.title">Notifications</span>
         <div class="notif-panel-actions">
-          <button class="notif-mark-read" title="Mark all read">Mark read</button>
-          <button class="notif-clear" title="Clear all">Clear</button>
+          <button class="notif-mark-read" title="Mark all read" data-i18n-title="notifications.read" data-i18n="notifications.markRead">Mark read</button>
+          <button class="notif-clear" title="Clear all" data-i18n-title="notifications.clear" data-i18n="ui.clear">Clear</button>
         </div>
       </div>
       <div class="notif-panel-body"></div>
@@ -74,6 +80,7 @@ export class NotificationCenter {
     });
 
     document.body.appendChild(this.panel);
+    i18n.applyTranslations(this.panel);
 
     // Close on outside click
     document.addEventListener('click', (e) => {
@@ -110,7 +117,7 @@ export class NotificationCenter {
     console.error = (...args) => {
       origError.apply(console, args);
       const msg = args.map(String).join(' ');
-      if (msg.includes('Failed') || msg.includes('Error') || msg.includes('error')) {
+      if (msg.includes('Failed') || msg.includes(i18n.t('ui.error')) || msg.includes('error')) {
         this.add(msg, 'error');
       }
     };
@@ -157,7 +164,7 @@ export class NotificationCenter {
   renderList() {
     const body = this.panel.querySelector('.notif-panel-body');
     if (this.notifications.length === 0) {
-      body.innerHTML = '<div class="notif-empty">No notifications</div>';
+      body.innerHTML = `<div class="notif-empty">${i18n.t('notifications.empty')}</div>`;
       return;
     }
 
@@ -226,6 +233,7 @@ export class NotificationCenter {
   }
 
   dispose() {
+    this._unsubLocale?.();
     this.close();
     this.button?.remove();
     this.panel?.remove();

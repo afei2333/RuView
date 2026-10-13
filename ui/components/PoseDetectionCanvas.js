@@ -1,5 +1,7 @@
 // PoseDetectionCanvas Component for WiFi-DensePose UI
 
+import { i18n } from '../utils/i18n.js';
+
 import { PoseRenderer } from '../utils/pose-renderer.js';
 import { poseService } from '../services/pose.service.js';
 import { SettingsPanel } from './SettingsPanel.js';
@@ -69,6 +71,14 @@ export class PoseDetectionCanvas {
     
     // Create DOM structure
     this.createDOMStructure();
+    i18n.applyTranslations(this.container);
+    this.updateConnectionIndicator();
+    this.unsubscribeFunctions.push(i18n.onLocaleChange(() => {
+      this.updateConnectionIndicator();
+      this.updateDemoButton(!!this.demoState?.isRunning);
+      const trail = document.getElementById(`trail-btn-${this.containerId}`);
+      if (trail) trail.textContent = this.showTrail ? i18n.t('ui.trailOn') : i18n.t('ui.trail');
+    }));
     
     // Initialize canvas and renderer
     this.initializeCanvas();
@@ -87,25 +97,25 @@ export class PoseDetectionCanvas {
       <div class="pose-detection-canvas-wrapper">
         <div class="pose-canvas-header">
           <div class="pose-canvas-title">
-            <h3>Human Pose Detection</h3>
+            <h3 data-i18n="ui.humanPoseDetection">Human Pose Detection</h3>
             <div class="connection-status">
               <span class="status-indicator" id="status-indicator-${this.containerId}"></span>
               <span class="status-text" id="status-text-${this.containerId}">Disconnected</span>
             </div>
           </div>
           <div class="pose-canvas-controls" id="controls-${this.containerId}" ${!this.config.enableControls ? 'style="display:none"' : ''}>
-            <button class="btn btn-start" id="start-btn-${this.containerId}">&#9654; Start</button>
-            <button class="btn btn-stop" id="stop-btn-${this.containerId}" disabled>&#9632; Stop</button>
-            <button class="btn btn-reconnect" id="reconnect-btn-${this.containerId}" disabled>&#8635; Reconnect</button>
+            <button class="btn btn-start" id="start-btn-${this.containerId}" data-i18n="ui.9654Start">&#9654; Start</button>
+            <button class="btn btn-stop" id="stop-btn-${this.containerId}" disabled data-i18n="ui.9632Stop">&#9632; Stop</button>
+            <button class="btn btn-reconnect" id="reconnect-btn-${this.containerId}" disabled data-i18n="ui.8635Reconnect">&#8635; Reconnect</button>
             <button class="btn btn-demo" id="demo-btn-${this.containerId}">&#9881; Demo</button>
             <select class="mode-select" id="mode-select-${this.containerId}">
-              <option value="skeleton">Skeleton</option>
-              <option value="keypoints">Keypoints</option>
-              <option value="heatmap">Heatmap</option>
-              <option value="dense">Dense</option>
+              <option value="skeleton" data-i18n="ui.skeleton">Skeleton</option>
+              <option value="keypoints" data-i18n="ui.keypoints">Keypoints</option>
+              <option value="heatmap" data-i18n="ui.heatmap">Heatmap</option>
+              <option value="dense" data-i18n="ui.dense">Dense</option>
             </select>
-            <button class="btn btn-trail" id="trail-btn-${this.containerId}">&#9676; Trail</button>
-            <button class="btn btn-settings" id="settings-btn-${this.containerId}">&#9881; Settings</button>
+            <button class="btn btn-trail" id="trail-btn-${this.containerId}">${i18n.t('ui.trail')}</button>
+            <button class="btn btn-settings" id="settings-btn-${this.containerId}" data-i18n="ui.9881Settings">&#9881; Settings</button>
           </div>
         </div>
         <div class="pose-canvas-container">
@@ -499,7 +509,7 @@ export class PoseDetectionCanvas {
 
         case 'error':
           this.setConnectionState('error');
-          this.showError(update.error?.message || 'Connection error');
+          this.showError(update.error?.message || i18n.t('ui.connectionError'));
           this.notifyCallback('onError', update.error);
           break;
 
@@ -508,7 +518,7 @@ export class PoseDetectionCanvas {
       }
     } catch (error) {
       this.logger.error('Error handling pose update', { error: error.message, update });
-      this.showError(`Update error: ${error.message}`);
+      this.showError(i18n.t('error.update', { message: error.message }));
     }
   }
 
@@ -535,7 +545,7 @@ export class PoseDetectionCanvas {
       }
     } catch (error) {
       this.logger.error('Render error', { error: error.message });
-      this.showError(`Render error: ${error.message}`);
+      this.showError(i18n.t('error.render', { message: error.message }));
     }
   }
 
@@ -570,8 +580,7 @@ export class PoseDetectionCanvas {
 
     if (indicator && text) {
       indicator.className = `status-indicator ${this.state.connectionState}`;
-      text.textContent = this.state.connectionState.charAt(0).toUpperCase() + 
-                        this.state.connectionState.slice(1);
+      text.textContent = i18n.status(this.state.connectionState);
     }
   }
 
@@ -661,7 +670,7 @@ export class PoseDetectionCanvas {
       this.logger.error('Failed to start pose detection', { error: error.message });
       this.state.isActive = false;
       this.updateControls();
-      this.showError(`Failed to start: ${error.message}`);
+      this.showError(i18n.t('error.start', { message: error.message }));
       this.notifyCallback('onError', error);
     }
   }
@@ -685,7 +694,7 @@ export class PoseDetectionCanvas {
       this.logger.info('Pose detection stopped');
     } catch (error) {
       this.logger.error('Error stopping pose detection', { error: error.message });
-      this.showError(`Stop error: ${error.message}`);
+      this.showError(i18n.t('error.stopCanvas', { message: error.message }));
     }
   }
 
@@ -695,7 +704,7 @@ export class PoseDetectionCanvas {
       await poseService.reconnectStream();
     } catch (error) {
       this.logger.error('Reconnection failed', { error: error.message });
-      this.showError(`Reconnection failed: ${error.message}`);
+      this.showError(i18n.t('error.reconnect', { message: error.message }));
     }
   }
 
@@ -713,7 +722,7 @@ export class PoseDetectionCanvas {
     const trailBtn = document.getElementById(`trail-btn-${this.containerId}`);
     if (trailBtn) {
       trailBtn.classList.toggle('active', this.showTrail);
-      trailBtn.textContent = this.showTrail ? '\u25CB Trail On' : '\u25CB Trail';
+      trailBtn.textContent = this.showTrail ? i18n.t('ui.trailOn') : i18n.t('ui.trail');
     }
     if (!this.showTrail) {
       this.poseTrail = [];
@@ -872,7 +881,7 @@ export class PoseDetectionCanvas {
   updateDemoButton(isRunning) {
     const demoBtn = document.getElementById(`demo-btn-${this.containerId}`);
     if (demoBtn) {
-      demoBtn.textContent = isRunning ? 'Stop Demo' : 'Demo';
+      demoBtn.textContent = isRunning ? i18n.t('ui.stopDemo') : i18n.t('ui.demo');
       demoBtn.style.background = isRunning ? '#dc3545' : '#6f42c1';
       demoBtn.style.borderColor = isRunning ? '#dc3545' : '#6f42c1';
     }
@@ -1236,7 +1245,7 @@ export class PoseDetectionCanvas {
       <div class="settings-modal-overlay">
         <div class="settings-modal-dialog">
           <div class="settings-modal-header">
-            <h2>⚙️ Pose Detection Settings</h2>
+            <h2 data-i18n="ui.poseDetectionSettingsText">⚙️ Pose Detection Settings</h2>
             <button class="settings-modal-close" type="button">×</button>
           </div>
           <div class="settings-modal-body" id="settings-container-${this.containerId}">

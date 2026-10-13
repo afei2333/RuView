@@ -1,6 +1,8 @@
 // Screenshot Tool - Capture current tab view as PNG
 // Uses html2canvas-like approach with native Canvas API
 
+import { i18n } from './i18n.js';
+
 import { toastManager } from './toast.js';
 
 export class ScreenshotTool {
@@ -18,7 +20,7 @@ export class ScreenshotTool {
 
     const activeTab = document.querySelector('.tab-content.active');
     if (!activeTab) {
-      toastManager.warning('No active tab to capture');
+      toastManager.warning(i18n.t('screenshot.noTab'));
       this.capturing = false;
       return;
     }
@@ -30,20 +32,20 @@ export class ScreenshotTool {
       // Try native ClipboardItem API first (modern browsers)
       if (typeof ClipboardItem !== 'undefined') {
         await this.captureToClipboard(activeTab);
-        toastManager.success('Screenshot copied to clipboard', { duration: 3000 });
+        toastManager.success(i18n.t('screenshot.clipboard'), { duration: 3000 });
       } else {
         // Fallback: download as file
         await this.captureToFile(activeTab);
-        toastManager.success('Screenshot saved as file', { duration: 3000 });
+        toastManager.success(i18n.t('screenshot.file'), { duration: 3000 });
       }
     } catch (err) {
       console.error('Screenshot failed:', err);
       // Fallback: capture visible canvases + basic layout
       try {
         await this.captureCanvasFallback(activeTab);
-        toastManager.success('Screenshot saved (canvas only)', { duration: 3000 });
+        toastManager.success(i18n.t('screenshot.canvas'), { duration: 3000 });
       } catch {
-        toastManager.error('Screenshot failed. Try using browser\'s built-in screenshot tool.');
+        toastManager.error(i18n.t('screenshot.failed'));
       }
     }
 

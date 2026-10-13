@@ -1,6 +1,8 @@
 // Fullscreen Mode - Toggle fullscreen on visualization tabs
 // Activated via F11 key, command palette, or button
 
+import { i18n } from './i18n.js';
+
 export class FullscreenManager {
   constructor() {
     this.isFullscreen = false;
@@ -63,7 +65,8 @@ export class FullscreenManager {
       exitBtn = document.createElement('button');
       exitBtn.id = 'fullscreen-exit-btn';
       exitBtn.className = 'fullscreen-exit-btn';
-      exitBtn.setAttribute('aria-label', 'Exit fullscreen');
+      exitBtn.setAttribute('aria-label', i18n.t('fullscreen.exit'));
+      exitBtn.setAttribute('data-i18n-aria', 'fullscreen.exit');
       exitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
       exitBtn.title = 'Exit fullscreen (F11)';
       exitBtn.addEventListener('click', () => this.exit());

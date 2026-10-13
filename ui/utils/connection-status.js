@@ -1,6 +1,8 @@
 // Connection Status Widget - Persistent indicator in header
 // Shows WebSocket and API connection state with reconnect button
 
+import { i18n } from './i18n.js';
+
 import { sensingService } from '../services/sensing.service.js';
 
 /** Ask QuickSettings to open on its API Access section (#2099). */
@@ -17,6 +19,7 @@ export class ConnectionStatus {
   init() {
     this.createWidget();
     this.subscribe();
+    this._unsubLocale = i18n.onLocaleChange(() => this.update());
   }
 
   createWidget() {
@@ -26,8 +29,8 @@ export class ConnectionStatus {
     this.widget.setAttribute('aria-live', 'polite');
     this.widget.innerHTML = `
       <span class="conn-status-dot"></span>
-      <span class="conn-status-label">Connecting</span>
-      <button class="conn-status-reconnect" aria-label="Reconnect" title="Reconnect" style="display:none">
+      <span class="conn-status-label" data-i18n="ui.connecting">Connecting</span>
+      <button class="conn-status-reconnect" aria-label="Reconnect" data-i18n-aria="ui.reconnect" title="Reconnect" data-i18n-title="ui.reconnect" style="display:none">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       </button>
     `;
@@ -42,7 +45,7 @@ export class ConnectionStatus {
     });
 
     this.widget.querySelector('.conn-status-reconnect').addEventListener('click', () => {
-      this.setStatus('reconnecting', 'Reconnecting...');
+      this.setStatus('reconnecting', i18n.t('conn.reconnecting'));
       sensingService.reconnect?.();
     });
 
@@ -66,15 +69,15 @@ export class ConnectionStatus {
     const source = sensingService.dataSource;
 
     if (state === 'connected' || state === 'streaming') {
-      const label = source === 'live' ? 'Live' :
-                    source === 'server-simulated' ? 'Simulated' :
-                    'Connected';
+      const label = source === 'live' ? i18n.t('conn.live') :
+                    source === 'server-simulated' ? i18n.t('conn.simulated') :
+                    i18n.t('conn.connected');
       this.setStatus('connected', label);
     } else if (state === 'connecting' || state === 'reconnecting') {
-      this.setStatus('reconnecting', 'Connecting...');
+      this.setStatus('reconnecting', i18n.t('conn.connecting'));
     } else if (state === 'auth-required') {
-      this.setStatus('error', 'Token required');
-      this.widget.title = 'This server requires an API token. Click to open Settings \u2192 API Access.';
+      this.setStatus('error', i18n.t('ui.tokenRequired'));
+      this.widget.title = i18n.t('ui.thisServerRequiresAnAPITokenClickToOpenSettingsAPIAccess');
       // Open the panel once per page load; after that the widget stays
       // clickable but does not keep popping the panel up.
       if (!this._openedApiAccess) {
@@ -84,9 +87,9 @@ export class ConnectionStatus {
         setTimeout(() => openApiAccess(sensingService.authRequired), 0);
       }
     } else if (state === 'error') {
-      this.setStatus('error', 'Error');
+      this.setStatus('error', i18n.t('ui.error'));
     } else {
-      this.setStatus('disconnected', 'Offline');
+      this.setStatus('disconnected', i18n.t('conn.offline'));
     }
   }
 
@@ -103,6 +106,7 @@ export class ConnectionStatus {
   }
 
   dispose() {
+    this._unsubLocale?.();
     if (this._unsub) this._unsub();
     if (this.widget?.parentNode) {
       this.widget.parentNode.removeChild(this.widget);

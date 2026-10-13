@@ -1,5 +1,7 @@
 // Dashboard Tab Component
 
+import { i18n } from '../utils/i18n.js';
+
 import { healthService } from '../services/health.service.js';
 import { poseService } from '../services/pose.service.js';
 import { sensingService } from '../services/sensing.service.js';
@@ -16,6 +18,10 @@ export class DashboardTab {
 
   // Initialize component
   async init() {
+    this._unsubLocale = i18n.onLocaleChange(() => {
+      this.updateDataSourceIndicator();
+      this.updateHealthStatus(this._lastHealth);
+    });
     this.cacheElements();
     await this.loadInitialData();
     this.startMonitoring();
@@ -112,12 +118,12 @@ export class DashboardTab {
     const statusText = el.querySelector('.status-text');
     const statusMsg  = el.querySelector('.status-message');
     const config = {
-      'live':              { text: 'ESP32',     status: 'healthy', msg: 'Real hardware connected' },
-      'server-simulated':  { text: 'SIMULATED', status: 'warning', msg: 'Server running without hardware' },
-      'reconnecting':      { text: 'RECONNECTING', status: 'degraded', msg: 'Attempting to connect...' },
-      'unreachable':       { text: 'NO DATA',   status: 'unhealthy', msg: 'Server unreachable — readings below are stale' },
-      'simulated':         { text: 'INVENTED',  status: 'unhealthy', msg: 'Browser-generated data, not measured' },
-      'auth-required':     { text: 'TOKEN REQUIRED', status: 'unhealthy', msg: 'Paste the server API token in Settings \u2192 API Access' },
+      'live':              { text: 'ESP32',     status: 'healthy', msg: i18n.t('ui.realHardwareConnected') },
+      'server-simulated':  { text: i18n.t('ui.simulatedStatus'), status: 'warning', msg: i18n.t('ui.serverRunningWithoutHardware') },
+      'reconnecting':      { text: i18n.t('ui.reconnectingStatusText'), status: 'degraded', msg: i18n.t('ui.attemptingToConnect') },
+      'unreachable':       { text: i18n.t('ui.noDATAStatus'),   status: 'unhealthy', msg: i18n.t('ui.serverUnreachableReadingsBelowAreStale') },
+      'simulated':         { text: i18n.t('ui.inventedStatus'),  status: 'unhealthy', msg: i18n.t('ui.browserGeneratedDataNotMeasured') },
+      'auth-required':     { text: i18n.t('ui.tokenREQUIREDStatus'), status: 'unhealthy', msg: i18n.t('ui.pasteTheServerAPITokenInSettingsAPIAccess') },
     };
     const cfg = config[ds] || config['reconnecting'];
     el.className = `component-status status-${cfg.status}`;
@@ -175,12 +181,13 @@ export class DashboardTab {
   // Update health status
   updateHealthStatus(health) {
     if (!health) return;
+    this._lastHealth = health;
 
     // Update overall status
     const overallStatus = this.container.querySelector('.overall-health');
     if (overallStatus) {
       overallStatus.className = `overall-health status-${health.status}`;
-      overallStatus.textContent = health.status.toUpperCase();
+      overallStatus.textContent = i18n.status(health.status);
     }
 
     // Update component statuses
@@ -214,7 +221,7 @@ export class DashboardTab {
       const statusMessage = element.querySelector('.status-message');
       
       if (statusText) {
-        statusText.textContent = status.status.toUpperCase();
+        statusText.textContent = i18n.status(status.status);
       }
       
       if (statusMessage && status.message) {
@@ -231,11 +238,11 @@ export class DashboardTab {
         const apiStatusMessage = apiElement.querySelector('.status-message');
         
         if (apiStatusText) {
-          apiStatusText.textContent = 'HEALTHY';
+          apiStatusText.textContent = i18n.t('ui.healthyStatus');
         }
         
         if (apiStatusMessage) {
-          apiStatusMessage.textContent = 'API server is running normally';
+          apiStatusMessage.textContent = i18n.t('ui.apiServerIsRunningNormally');
         }
       }
     }
@@ -444,6 +451,7 @@ export class DashboardTab {
 
   // Clean up
   dispose() {
+    this._unsubLocale?.();
     if (this.healthSubscription) {
       this.healthSubscription();
     }
