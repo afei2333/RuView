@@ -1,6 +1,8 @@
 // Activity Log - Scrollable panel showing system events in real-time
 // Toggle with 'L' key or command palette
 
+import { i18n } from './i18n.js';
+
 export class ActivityLog {
   constructor() {
     this.panel = null;
@@ -21,17 +23,18 @@ export class ActivityLog {
     this.panel = document.createElement('div');
     this.panel.className = 'activity-log';
     this.panel.setAttribute('role', 'log');
-    this.panel.setAttribute('aria-label', 'Activity log');
+    this.panel.setAttribute('aria-label', i18n.t('activity.label'));
+    this.panel.setAttribute('data-i18n-aria', 'activity.label');
     this.panel.innerHTML = `
       <div class="activity-log-header">
-        <span class="activity-log-title">Activity Log</span>
+        <span class="activity-log-title" data-i18n="activity.title">Activity Log</span>
         <div class="activity-log-controls">
-          <button class="activity-log-filter active" data-filter="info" aria-label="Toggle info messages" title="Info">I</button>
-          <button class="activity-log-filter active" data-filter="warning" aria-label="Toggle warnings" title="Warnings">W</button>
-          <button class="activity-log-filter active" data-filter="error" aria-label="Toggle errors" title="Errors">E</button>
-          <button class="activity-log-filter active" data-filter="connection" aria-label="Toggle connection events" title="Connection">C</button>
-          <button class="activity-log-clear" aria-label="Clear log" title="Clear">Clear</button>
-          <button class="activity-log-close" aria-label="Close activity log">&times;</button>
+          <button class="activity-log-filter active" data-filter="info" aria-label="Toggle info messages" data-i18n-aria="activity.info" title="Info" data-i18n-title="activity.infoTitle">I</button>
+          <button class="activity-log-filter active" data-filter="warning" aria-label="Toggle warnings" data-i18n-aria="activity.warning" title="Warnings" data-i18n-title="activity.warningsTitle">W</button>
+          <button class="activity-log-filter active" data-filter="error" aria-label="Toggle errors" data-i18n-aria="activity.errors" title="Errors" data-i18n-title="activity.errorsTitle">E</button>
+          <button class="activity-log-filter active" data-filter="connection" aria-label="Toggle connection events" data-i18n-aria="activity.connection" title="Connection" data-i18n-title="ui.connection">C</button>
+          <button class="activity-log-clear" aria-label="Clear log" data-i18n-aria="activity.clear" title="Clear" data-i18n-title="ui.clear" data-i18n="ui.clear">Clear</button>
+          <button class="activity-log-close" aria-label="Close activity log" data-i18n-aria="activity.close">&times;</button>
         </div>
       </div>
       <div class="activity-log-body"></div>
@@ -62,6 +65,7 @@ export class ActivityLog {
     this.makeResizable();
 
     document.body.appendChild(this.panel);
+    i18n.applyTranslations(this.panel);
   }
 
   makeResizable() {

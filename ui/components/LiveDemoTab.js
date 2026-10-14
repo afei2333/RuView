@@ -1,5 +1,7 @@
 // Live Demo Tab Component - Enhanced Version
 
+import { i18n } from '../utils/i18n.js';
+
 import { PoseDetectionCanvas } from './PoseDetectionCanvas.js';
 import { poseService } from '../services/pose.service.js';
 import { streamService } from '../services/stream.service.js';
@@ -115,6 +117,20 @@ export class LiveDemoTab {
 
       // Initialize state
       this.updateUI();
+      this.updateSourceBanner();
+      this.subscriptions.push(i18n.onLocaleChange(() => {
+        this.updateUI();
+        this.updateSourceBanner();
+        this.updateTrainingStatus();
+        const debug = this.container.querySelector('#toggle-debug');
+        if (debug) debug.textContent = this.state.debugMode ? i18n.t('ui.hideDebug') : i18n.t('ui.debugMode');
+        const split = this.container.querySelector('#split-view-toggle');
+        if (split) split.textContent = this.splitViewActive ? i18n.t('ui.on') : i18n.t('ui.off');
+        this.setModelStatus(this._modelStatusKey || 'ui.noModelLoaded', this._modelStatusParams);
+        this.container.querySelectorAll('.split-view-label').forEach(label => {
+          label.textContent = i18n.t(label.classList.contains('left') ? 'ui.signalDerived' : 'ui.modelInference');
+        });
+      }));
 
       // Auto-start pose detection when a backend is reachable.
       // Check after a brief delay (sensing WS may still be connecting).
@@ -135,7 +151,7 @@ export class LiveDemoTab {
       this.logger.info('LiveDemoTab component initialized successfully');
     } catch (error) {
       this.logger.error('Failed to initialize LiveDemoTab', { error: error.message });
-      this.showError(`Initialization failed: ${error.message}`);
+      this.showError(i18n.t('error.initialize', { message: error.message }));
     }
   }
 
@@ -153,21 +169,21 @@ export class LiveDemoTab {
 
           <div class="demo-header">
             <div class="demo-title">
-              <h2>Live Human Pose Detection</h2>
+              <h2 data-i18n="ui.liveHumanPoseDetection">Live Human Pose Detection</h2>
               <div class="demo-status">
                 <span class="status-indicator" id="demo-status-indicator"></span>
                 <span class="status-text" id="demo-status-text">Ready</span>
               </div>
             </div>
             <div class="demo-controls">
-              <button class="btn btn--primary" id="start-enhanced-demo">Start Detection</button>
-              <button class="btn btn--secondary" id="stop-enhanced-demo" disabled>Stop Detection</button>
-              <button class="btn btn--accent" id="run-offline-demo">Demo</button>
-              <button class="btn btn--primary" id="toggle-debug">Debug Mode</button>
+              <button class="btn btn--primary" id="start-enhanced-demo" data-i18n="action.startDetection">Start Detection</button>
+              <button class="btn btn--secondary" id="stop-enhanced-demo" disabled data-i18n="action.stopDetection">Stop Detection</button>
+              <button class="btn btn--accent" id="run-offline-demo" data-i18n="ui.demo">Demo</button>
+              <button class="btn btn--primary" id="toggle-debug">${i18n.t('ui.debugMode')}</button>
               <select class="zone-select" id="zone-selector">
-                <option value="zone_1">Zone 1</option>
-                <option value="zone_2">Zone 2</option>
-                <option value="zone_3">Zone 3</option>
+                <option value="zone_1" data-i18n="ui.zone1">Zone 1</option>
+                <option value="zone_2" data-i18n="ui.zone2">Zone 2</option>
+                <option value="zone_3" data-i18n="ui.zone3">Zone 3</option>
               </select>
             </div>
           </div>
@@ -179,31 +195,31 @@ export class LiveDemoTab {
             
             <div class="demo-sidebar">
               <div class="metrics-panel">
-                <h4>Performance Metrics</h4>
+                <h4 data-i18n="ui.performanceMetrics">Performance Metrics</h4>
                 <div class="metric">
-                  <label>Connection Status:</label>
+                  <label data-i18n="ui.connectionStatusLabel">Connection Status:</label>
                   <span id="connection-status">Disconnected</span>
                 </div>
                 <div class="metric">
-                  <label>Frames Processed:</label>
+                  <label data-i18n="ui.framesProcessedLabel">Frames Processed:</label>
                   <span id="frame-count">0</span>
                 </div>
                 <div class="metric">
-                  <label>Uptime:</label>
+                  <label data-i18n="ui.uptimeLabel">Uptime:</label>
                   <span id="uptime">0s</span>
                 </div>
                 <div class="metric">
-                  <label>Errors:</label>
+                  <label data-i18n="ui.errorsLabel">Errors:</label>
                   <span id="error-count">0</span>
                 </div>
                 <div class="metric">
-                  <label>Last Update:</label>
+                  <label data-i18n="ui.lastUpdateLabel">Last Update:</label>
                   <span id="last-update">Never</span>
                 </div>
               </div>
               
               <div class="pose-source-panel">
-                <h4>Estimation Mode</h4>
+                <h4 data-i18n="ui.estimationMode">Estimation Mode</h4>
                 <div class="pose-source-indicator" id="pose-source-indicator">
                   <span class="pose-source-badge pose-source-unknown" id="pose-source-badge">Unknown</span>
                   <p class="pose-source-description" id="pose-source-description">
@@ -213,11 +229,11 @@ export class LiveDemoTab {
               </div>
 
               <div class="model-control-panel" id="model-control-panel">
-                <h4>Model Control</h4>
+                <h4 data-i18n="ui.modelControl">Model Control</h4>
                 <div class="setting-row-ld">
-                  <label class="ld-label">Model:</label>
+                  <label class="ld-label" data-i18n="ui.modelLabel">Model:</label>
                   <select class="ld-select" id="model-selector">
-                    <option value="">Signal-Derived (no model)</option>
+                    <option value="" data-i18n="ui.signalDerivedNoModel">Signal-Derived (no model)</option>
                   </select>
                 </div>
                 <div class="model-info-row" id="model-active-info" style="display: none;">
@@ -225,90 +241,88 @@ export class LiveDemoTab {
                   <span class="model-pck-badge" id="model-active-pck"></span>
                 </div>
                 <div class="setting-row-ld" id="lora-profile-row" style="display: none;">
-                  <label class="ld-label">LoRA Profile:</label>
+                  <label class="ld-label" data-i18n="ui.loraProfileLabel">LoRA Profile:</label>
                   <select class="ld-select" id="lora-profile-selector">
-                    <option value="">None</option>
+                    <option value="" data-i18n="ui.none">None</option>
                   </select>
                 </div>
                 <div class="model-actions">
-                  <button class="btn-ld btn-ld-accent" id="load-model-btn">Load Model</button>
-                  <button class="btn-ld btn-ld-muted" id="unload-model-btn" disabled>Unload</button>
+                  <button class="btn-ld btn-ld-accent" id="load-model-btn" data-i18n="ui.loadModel">Load Model</button>
+                  <button class="btn-ld btn-ld-muted" id="unload-model-btn" disabled data-i18n="ui.unload">Unload</button>
                 </div>
-                <div class="model-status-text" id="model-status-text">No model loaded</div>
+                <div class="model-status-text" id="model-status-text">${i18n.t('ui.noModelLoaded')}</div>
               </div>
 
               <div class="split-view-panel">
                 <div class="setting-row-ld">
-                  <label class="ld-label">Compare: Signal vs Model</label>
-                  <button class="btn-ld btn-ld-toggle" id="split-view-toggle" disabled>Off</button>
+                  <label class="ld-label" data-i18n="ui.compareSignalVsModel">Compare: Signal vs Model</label>
+                  <button class="btn-ld btn-ld-toggle" id="split-view-toggle" disabled>${i18n.t('ui.off')}</button>
                 </div>
               </div>
 
               <div class="training-quick-panel" id="training-quick-panel">
-                <h4>Training</h4>
+                <h4 data-i18n="nav.training">Training</h4>
                 <div class="training-status-row">
                   <span class="training-status-badge" id="training-status-badge">Idle</span>
                 </div>
                 <div class="training-actions">
-                  <button class="btn-ld btn-ld-accent" id="open-training-panel-btn">Open Training Panel</button>
-                  <button class="btn-ld btn-ld-muted" id="quick-record-btn">Record 60s</button>
+                  <button class="btn-ld btn-ld-accent" id="open-training-panel-btn" data-i18n="ui.openTrainingPanel">Open Training Panel</button>
+                  <button class="btn-ld btn-ld-muted" id="quick-record-btn" data-i18n="ui.record60s">Record 60s</button>
                 </div>
               </div>
 
               <div class="setup-guide-panel">
-                <h4>Setup Guide</h4>
+                <h4 data-i18n="ui.setupGuide">Setup Guide</h4>
                 <div class="setup-levels">
                   <div class="setup-level">
                     <span class="setup-level-icon">1x</span>
                     <div class="setup-level-info">
-                      <strong>1 ESP32 + 1 AP</strong>
-                      <p>Presence, breathing, gross motion</p>
+                      <strong data-i18n="ui.1ESP321APStatus">1 ESP32 + 1 AP</strong>
+                      <p data-i18n="ui.presenceBreathingGrossMotion">Presence, breathing, gross motion</p>
                     </div>
                   </div>
                   <div class="setup-level">
                     <span class="setup-level-icon">3x</span>
                     <div class="setup-level-info">
-                      <strong>2-3 ESP32s</strong>
-                      <p>Body localization, motion direction</p>
+                      <strong data-i18n="ui.23ESP32s">2-3 ESP32s</strong>
+                      <p data-i18n="ui.bodyLocalizationMotionDirection">Body localization, motion direction</p>
                     </div>
                   </div>
                   <div class="setup-level">
                     <span class="setup-level-icon">4x+</span>
                     <div class="setup-level-info">
-                      <strong>4+ ESP32s + trained model</strong>
-                      <p>Individual limb tracking, full pose</p>
+                      <strong data-i18n="ui.4ESP32sTrainedModel">4+ ESP32s + trained model</strong>
+                      <p data-i18n="ui.individualLimbTrackingFullPose">Individual limb tracking, full pose</p>
                     </div>
                   </div>
                 </div>
                 <p class="setup-note">
-                  Signal-Derived mode uses aggregate CSI features.
-                  For per-limb tracking, load a trained <code>.rvf</code> model
-                  with <code>--model path.rvf</code> and use 4+ sensors.
+                  <span data-i18n="demo.setupBefore">Signal-Derived mode uses aggregate CSI features. For per-limb tracking, load a trained</span> <code>.rvf</code> <span data-i18n="demo.setupMiddle">model with</span> <code>--model path.rvf</code> <span data-i18n="demo.setupEnd">and use 4+ sensors.</span>
                 </p>
               </div>
 
               <div class="health-panel">
-                <h4>System Health</h4>
+                <h4 data-i18n="ui.systemHealthText">System Health</h4>
                 <div class="health-check">
-                  <label>API Health:</label>
-                  <span id="api-health">Unknown</span>
+                  <label data-i18n="ui.apiHealthLabel">API Health:</label>
+                  <span id="api-health" data-i18n="ui.unknown">Unknown</span>
                 </div>
                 <div class="health-check">
                   <label>WebSocket:</label>
-                  <span id="websocket-health">Unknown</span>
+                  <span id="websocket-health" data-i18n="ui.unknown">Unknown</span>
                 </div>
                 <div class="health-check">
-                  <label>Pose Service:</label>
-                  <span id="pose-service-health">Unknown</span>
+                  <label data-i18n="ui.poseServiceLabel">Pose Service:</label>
+                  <span id="pose-service-health" data-i18n="ui.unknown">Unknown</span>
                 </div>
               </div>
               
               <div class="debug-panel" id="debug-panel" style="display: none;">
-                <h4>Debug Information</h4>
+                <h4 data-i18n="ui.debugInformation">Debug Information</h4>
                 <div class="debug-actions">
-                  <button class="btn btn-sm" id="force-reconnect">Force Reconnect</button>
-                  <button class="btn btn-sm" id="clear-errors">Clear Errors</button>
-                  <button class="btn btn-sm" id="export-logs">Export Logs</button>
+                  <button class="btn btn-sm" id="force-reconnect" data-i18n="ui.forceReconnect">Force Reconnect</button>
+                  <button class="btn btn-sm" id="clear-errors" data-i18n="ui.clearErrors">Clear Errors</button>
+                  <button class="btn btn-sm" id="export-logs" data-i18n="ui.exportLogs">Export Logs</button>
                 </div>
                 <div class="debug-info">
                   <textarea id="debug-output" readonly rows="8" cols="30"></textarea>
@@ -324,6 +338,7 @@ export class LiveDemoTab {
       `;
       
       this.container.innerHTML = enhancedHTML;
+      i18n.applyTranslations(this.container);
       this.addEnhancedStyles();
     }
   }
@@ -1130,7 +1145,7 @@ export class LiveDemoTab {
   handleCanvasError(error) {
     this.metrics.errorCount++;
     this.logger.error('Canvas error', { error: error.message });
-    this.showError(`Canvas error: ${error.message}`);
+    this.showError(i18n.t('error.canvas', { message: error.message }));
   }
 
   handleConnectionStateChange(state) {
@@ -1165,7 +1180,7 @@ export class LiveDemoTab {
       
     } catch (error) {
       this.logger.error('Failed to start enhanced demo', { error: error.message });
-      this.showError(`Failed to start: ${error.message}`);
+      this.showError(i18n.t('error.start', { message: error.message }));
       this.setState({ isActive: false, connectionState: 'error' });
     }
   }
@@ -1192,7 +1207,7 @@ export class LiveDemoTab {
       
     } catch (error) {
       this.logger.error('Error stopping enhanced demo', { error: error.message });
-      this.showError(`Error stopping: ${error.message}`);
+      this.showError(i18n.t('error.stopping', { message: error.message }));
     }
   }
 
@@ -1207,7 +1222,7 @@ export class LiveDemoTab {
     }
     
     if (debugBtn) {
-      debugBtn.textContent = this.state.debugMode ? 'Hide Debug' : 'Debug Mode';
+      debugBtn.textContent = this.state.debugMode ? i18n.t('ui.hideDebug') : i18n.t('ui.debugMode');
       debugBtn.classList.toggle('active', this.state.debugMode);
     }
     
@@ -1231,7 +1246,7 @@ export class LiveDemoTab {
 
   async forceReconnect() {
     if (!this.state.isActive) {
-      this.showError('Cannot reconnect - demo not active');
+      this.showError(i18n.t('demo.notActive'));
       return;
     }
     
@@ -1241,7 +1256,7 @@ export class LiveDemoTab {
       this.updateDebugOutput('Force reconnection initiated');
     } catch (error) {
       this.logger.error('Force reconnection failed', { error: error.message });
-      this.showError(`Reconnection failed: ${error.message}`);
+      this.showError(i18n.t('error.reconnect', { message: error.message }));
     }
   }
 
@@ -1286,6 +1301,7 @@ export class LiveDemoTab {
     this.updateControls();
     this.updateMetricsDisplay();
     this.updatePoseSourceIndicator();
+    this.updateTrainingStatus();
   }
 
   updateStatusIndicator() {
@@ -1313,15 +1329,15 @@ export class LiveDemoTab {
 
   getStatusText() {
     if (!this.state.isActive) {
-      return this.state.connectionState === 'error' ? 'Error' : 'Ready';
+      return this.state.connectionState === 'error' ? i18n.t('ui.error') : i18n.t('ui.ready');
     }
     const ds = sensingService.dataSource;
-    if (ds === 'live') return 'Active \u2014 ESP32 Live';
-    if (ds === 'server-simulated') return 'Active \u2014 Simulated Data';
-    if (ds === 'unreachable') return 'No Data \u2014 Server Unreachable';
-    if (ds === 'simulated') return 'INVENTED DATA \u2014 Not Measured';
-    if (ds === 'auth-required') return 'API Token Required';
-    return 'Connecting...';
+    if (ds === 'live') return i18n.t('ui.activeESP32Live');
+    if (ds === 'server-simulated') return i18n.t('ui.activeSimulatedData');
+    if (ds === 'unreachable') return i18n.t('ui.noDataServerUnreachable');
+    if (ds === 'simulated') return i18n.t('ui.inventedDATANotMeasured');
+    if (ds === 'auth-required') return i18n.t('ui.apiTokenRequiredText');
+    return i18n.t('conn.connecting');
   }
 
   /** Update the prominent data-source banner at the top of Live Demo. */
@@ -1330,12 +1346,12 @@ export class LiveDemoTab {
     if (!banner) return;
     const ds = sensingService.dataSource;
     const config = {
-      'live':             { text: 'LIVE \u2014 ESP32 Hardware Connected',           cls: 'demo-source-live' },
-      'server-simulated': { text: 'SIMULATED DATA \u2014 No Hardware Detected',     cls: 'demo-source-sim' },
-      'reconnecting':     { text: 'RECONNECTING TO SERVER...',                      cls: 'demo-source-reconnecting' },
-      'unreachable':      { text: 'NO DATA \u2014 Server Unreachable, Display Is Stale', cls: 'demo-source-offline' },
-      'simulated':        { text: 'INVENTED DATA \u2014 Generated By Your Browser, Not Measured', cls: 'demo-source-offline' },
-      'auth-required':    { text: 'API TOKEN REQUIRED \u2014 Settings \u2192 API Access', cls: 'demo-source-offline' },
+      'live':             { text: i18n.t('ui.liveESP32HardwareConnected'),           cls: 'demo-source-live' },
+      'server-simulated': { text: i18n.t('ui.simulatedDATANoHardwareDetected'),     cls: 'demo-source-sim' },
+      'reconnecting':     { text: i18n.t('ui.reconnectingTOSERVERStatus'),                      cls: 'demo-source-reconnecting' },
+      'unreachable':      { text: i18n.t('ui.noDATAServerUnreachableDisplayIsStale'), cls: 'demo-source-offline' },
+      'simulated':        { text: i18n.t('ui.inventedDATAGeneratedByYourBrowserNotMeasured'), cls: 'demo-source-offline' },
+      'auth-required':    { text: i18n.t('ui.apiTOKENREQUIREDSettingsAPIAccess'), cls: 'demo-source-offline' },
     };
     const cfg = config[ds] || config['reconnecting'];
     banner.textContent = cfg.text;
@@ -1372,13 +1388,13 @@ export class LiveDemoTab {
     if (elements.connectionStatus) {
       const ds = sensingService.dataSource;
       const dsLabels = {
-        'live':              'Connected \u2014 ESP32',
-        'server-simulated':  'Connected \u2014 Simulated',
-        'reconnecting':      'Reconnecting...',
-        'simulated':         'Offline \u2014 Simulated',
-        'auth-required':     'API token required',
+        'live':              i18n.t('ui.connectedESP32'),
+        'server-simulated':  i18n.t('ui.connectedSimulated'),
+        'reconnecting':      i18n.t('conn.reconnecting'),
+        'simulated':         i18n.t('ui.offlineSimulated'),
+        'auth-required':     i18n.t('ui.apiTokenRequired'),
       };
-      const label = dsLabels[ds] || this.state.connectionState;
+      const label = dsLabels[ds] || i18n.status(this.state.connectionState);
       elements.connectionStatus.textContent = label;
       const cls = ds === 'live' ? 'good'
         : ds === 'server-simulated' ? 'sim'
@@ -1404,7 +1420,7 @@ export class LiveDemoTab {
 
     if (elements.lastUpdate) {
       const lastUpdate = this.metrics.lastUpdate ? 
-        new Date(this.metrics.lastUpdate).toLocaleTimeString() : 'Never';
+        new Date(this.metrics.lastUpdate).toLocaleTimeString() : i18n.t('ui.never');
       elements.lastUpdate.textContent = lastUpdate;
     }
   }
@@ -1419,20 +1435,18 @@ export class LiveDemoTab {
 
     if (source === 'model_inference') {
       badge.className = 'pose-source-badge pose-source-model';
-      badge.textContent = 'Model Inference';
+      badge.textContent = i18n.t('ui.modelInference');
       description.textContent =
-        'Pose is estimated by a trained neural network ' +
-        'loaded from an RVF container.';
+        i18n.t('ui.poseIsEstimatedByATrainedNeuralNetworkLoadedFromAnRVFContainer');
     } else if (source === 'signal_derived') {
       badge.className = 'pose-source-badge pose-source-signal';
-      badge.textContent = 'Signal-Derived';
+      badge.textContent = i18n.t('ui.signalDerived');
       description.textContent =
-        'Keypoints are derived from live CSI signal features ' +
-        '(motion power, breathing rate, variance).';
+        i18n.t('ui.keypointsAreDerivedFromLiveCSISignalFeaturesMotionPowerBreathingRateVariance');
     } else {
       badge.className = 'pose-source-badge pose-source-unknown';
-      badge.textContent = 'Unknown';
-      description.textContent = 'Waiting for first frame...';
+      badge.textContent = i18n.t('ui.unknown');
+      description.textContent = i18n.t('ui.waitingForFirstFrame');
     }
   }
 
@@ -1467,7 +1481,8 @@ export class LiveDemoTab {
   updateHealthDisplay(elementId, isHealthy) {
     const element = this.container.querySelector(`#${elementId}`);
     if (element) {
-      element.textContent = isHealthy ? 'Good' : 'Poor';
+      element.textContent = isHealthy ? i18n.t('ui.good') : i18n.t('ui.poor');
+      element.setAttribute('data-i18n', isHealthy ? 'ui.good' : 'ui.poor');
       element.className = isHealthy ? 'health-good' : 'health-poor';
     }
   }
@@ -1526,11 +1541,11 @@ export class LiveDemoTab {
     const selector = this.container.querySelector('#model-selector');
     if (!selector) return;
     // Keep the first "Signal-Derived" option
-    selector.innerHTML = '<option value="">Signal-Derived (no model)</option>';
+    selector.innerHTML = '<option value="" data-i18n="ui.signalDerivedNoModel">Signal-Derived (no model)</option>';
     this.modelState.models.forEach(model => {
       const opt = document.createElement('option');
       opt.value = model.id || model.model_id || model.name;
-      opt.textContent = model.name || model.id || 'Unknown Model';
+      opt.textContent = model.name || model.id || i18n.t('ui.unknownModel');
       selector.appendChild(opt);
     });
     if (this.modelState.activeModelId) {
@@ -1543,12 +1558,12 @@ export class LiveDemoTab {
     const selector = this.container.querySelector('#model-selector');
     const modelId = selector?.value;
     if (!modelId) {
-      this.setModelStatus('Select a model first');
+      this.setModelStatus('model.selectFirst');
       return;
     }
     try {
       this.modelState.loading = true;
-      this.setModelStatus('Loading...');
+      this.setModelStatus('misc.loading');
       const loadBtn = this.container.querySelector('#load-model-btn');
       if (loadBtn) loadBtn.disabled = true;
 
@@ -1580,7 +1595,7 @@ export class LiveDemoTab {
 
     } catch (error) {
       this.modelState.loading = false;
-      this.setModelStatus(`Error: ${error.message}`);
+      this.setModelStatus('error.message', { message: error.message });
       const loadBtn = this.container.querySelector('#load-model-btn');
       if (loadBtn) loadBtn.disabled = false;
       this.logger.error('Failed to load model', { error: error.message });
@@ -1600,7 +1615,7 @@ export class LiveDemoTab {
       this.disableSplitView();
       this.setState({ poseSource: 'signal_derived' });
     } catch (error) {
-      this.setModelStatus(`Error: ${error.message}`);
+      this.setModelStatus('error.message', { message: error.message });
       this.logger.error('Failed to unload model', { error: error.message });
     }
   }
@@ -1611,9 +1626,9 @@ export class LiveDemoTab {
     try {
       await modelService.activateLoraProfile(this.modelState.activeModelId, profileName);
       this.modelState.selectedLoraProfile = profileName;
-      this.setModelStatus(`LoRA: ${profileName} active`);
+      this.setModelStatus('model.loraActive', { name: profileName });
     } catch (error) {
-      this.setModelStatus(`LoRA error: ${error.message}`);
+      this.setModelStatus('model.loraError', { message: error.message });
     }
   }
 
@@ -1642,16 +1657,16 @@ export class LiveDemoTab {
       const pck = info.pck_score != null ? info.pck_score.toFixed(2) : '--';
       if (nameEl) nameEl.textContent = `${name}${version}`;
       if (pckEl) pckEl.textContent = `PCK: ${pck}`;
-      this.setModelStatus(`Model: ${name} (PCK: ${pck})`);
+      this.setModelStatus('model.loaded', { name, pck });
     } else if (!isLoaded) {
-      this.setModelStatus('No model loaded');
+      this.setModelStatus('ui.noModelLoaded');
     }
 
     // LoRA profiles
     if (loraRow && loraSel) {
       if (isLoaded && this.modelState.loraProfiles.length > 0) {
         loraRow.style.display = 'flex';
-        loraSel.innerHTML = '<option value="">None</option>';
+        loraSel.innerHTML = '<option value="" data-i18n="ui.none">None</option>';
         this.modelState.loraProfiles.forEach(profile => {
           const opt = document.createElement('option');
           opt.value = profile.name || profile;
@@ -1664,9 +1679,11 @@ export class LiveDemoTab {
     }
   }
 
-  setModelStatus(text) {
+  setModelStatus(key, params = {}) {
+    this._modelStatusKey = key;
+    this._modelStatusParams = params;
     const el = this.container.querySelector('#model-status-text');
-    if (el) el.textContent = text;
+    if (el) el.textContent = i18n.t(key, params);
   }
 
   // --- A/B Split View Methods ---
@@ -1683,7 +1700,7 @@ export class LiveDemoTab {
     this.splitViewActive = !this.splitViewActive;
     const toggle = this.container.querySelector('#split-view-toggle');
     if (toggle) {
-      toggle.textContent = this.splitViewActive ? 'On' : 'Off';
+      toggle.textContent = this.splitViewActive ? i18n.t('ui.on') : i18n.t('ui.off');
       toggle.classList.toggle('active', this.splitViewActive);
     }
     this.updateSplitViewOverlay();
@@ -1693,7 +1710,7 @@ export class LiveDemoTab {
     this.splitViewActive = false;
     const toggle = this.container.querySelector('#split-view-toggle');
     if (toggle) {
-      toggle.textContent = 'Off';
+      toggle.textContent = i18n.t('ui.off');
       toggle.classList.remove('active');
     }
     this.updateSplitViewOverlay();
@@ -1713,12 +1730,12 @@ export class LiveDemoTab {
 
       const leftLabel = document.createElement('div');
       leftLabel.className = 'split-view-label left';
-      leftLabel.textContent = 'Signal-Derived';
+      leftLabel.textContent = i18n.t('ui.signalDerived');
       mainContainer.appendChild(leftLabel);
 
       const rightLabel = document.createElement('div');
       rightLabel.className = 'split-view-label right';
-      rightLabel.textContent = 'Model Inference';
+      rightLabel.textContent = i18n.t('ui.modelInference');
       mainContainer.appendChild(rightLabel);
     }
   }
@@ -1734,12 +1751,12 @@ export class LiveDemoTab {
 
     if (state === 'training') {
       badge.classList.add('training');
-      badge.textContent = `Training epoch ${this.trainingState.epoch}/${this.trainingState.totalEpochs}`;
+      badge.textContent = i18n.t('training.epoch', { epoch: this.trainingState.epoch, total: this.trainingState.totalEpochs });
     } else if (state === 'recording') {
       badge.classList.add('recording');
-      badge.textContent = 'Recording...';
+      badge.textContent = i18n.t('ui.recording');
     } else {
-      badge.textContent = 'Idle';
+      badge.textContent = i18n.t('ui.idle');
     }
   }
 
@@ -1773,25 +1790,26 @@ export class LiveDemoTab {
     overlay.className = 'training-panel-overlay';
     overlay.innerHTML = `
       <div class="training-panel-modal">
-        <button class="close-btn" id="close-training-modal">Close</button>
-        <h3>Training Panel</h3>
-        <p style="color: #8899aa; font-size: 13px; margin-bottom: 16px;">
+        <button class="close-btn" id="close-training-modal" data-i18n="misc.close">Close</button>
+        <h3 data-i18n="ui.trainingPanel">Training Panel</h3>
+        <p style="color: #8899aa; font-size: 13px; margin-bottom: 16px;" data-i18n="ui.configureAndStartModelTrainingFromHereConnectToTheBackendTrainingAPIToManageEpochsDatasetsAndCheckpoints">
           Configure and start model training from here. Connect to the backend training API to manage epochs, datasets, and checkpoints.
         </p>
         <div style="display: flex; flex-direction: column; gap: 10px;">
           <div class="setting-row-ld">
-            <label class="ld-label" style="flex: 1;">Status:</label>
-            <span style="color: #c8d0dc; font-size: 12px;">${this.trainingState.status}</span>
+            <label class="ld-label" style="flex: 1;" data-i18n="ui.statusLabel">Status:</label>
+            <span style="color: #c8d0dc; font-size: 12px;">${i18n.status(this.trainingState.status)}</span>
           </div>
           <div class="setting-row-ld">
-            <label class="ld-label" style="flex: 1;">Training service:</label>
-            <span style="color: ${trainingService ? '#00cc88' : '#ef4444'}; font-size: 12px;">${trainingService ? 'Connected' : 'Not available'}</span>
+            <label class="ld-label" style="flex: 1;" data-i18n="ui.trainingServiceLabel">Training service:</label>
+            <span style="color: ${trainingService ? '#00cc88' : '#ef4444'}; font-size: 12px;">${trainingService ? i18n.t('conn.connected') : i18n.t('misc.unavailable')}</span>
           </div>
         </div>
       </div>
     `;
 
     document.body.appendChild(overlay);
+    i18n.applyTranslations(overlay);
 
     // Close handler
     overlay.querySelector('#close-training-modal').addEventListener('click', () => overlay.remove());

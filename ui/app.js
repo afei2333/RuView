@@ -43,6 +43,9 @@ class WiFiDensePoseApp {
       
       // Set up error handling
       this.setupErrorHandling();
+
+      // Translate the shell before any backend request can delay startup.
+      i18n.init();
       
       // Initialize services
       await this.initializeServices();
@@ -61,7 +64,7 @@ class WiFiDensePoseApp {
       
     } catch (error) {
       console.error('Failed to initialize application:', error);
-      this.showGlobalError('Failed to initialize application. Please refresh the page.');
+      this.showGlobalError(i18n.t('app.initializeError'));
     }
   }
 
@@ -86,17 +89,17 @@ class WiFiDensePoseApp {
       mockServer.start();
       
       // Show notification to user
-      this.showBackendStatus('Mock server active - testing mode', 'warning');
+      this.showBackendStatus(i18n.t('app.mock'), 'warning');
     } else {
       console.log('🔌 Connecting to backend...');
 
       try {
         const health = await healthService.checkLiveness();
         console.log('✅ Backend responding:', health);
-        this.showBackendStatus('Connected to Rust sensing server', 'success');
+        this.showBackendStatus(i18n.t('app.connected'), 'success');
       } catch (error) {
         console.warn('⚠️ Backend not available:', error.message);
-        this.showBackendStatus('Backend unavailable — start sensing-server', 'warning');
+        this.showBackendStatus(i18n.t('app.unavailable'), 'warning');
       }
 
       // Mount the global provenance bar before the service starts, so the very
@@ -246,21 +249,21 @@ class WiFiDensePoseApp {
     this.quickSettings = new QuickSettings(this);
     this.quickSettings.init();
 
-    // Internationalization (EN/PL)
-    i18n.init();
+    // Internationalization (English, Polish, Simplified Chinese)
+    i18n.applyTranslations();
 
     // Keyboard shortcuts (pass app reference for tab switching)
     this.keyboardShortcuts = new KeyboardShortcuts(this);
-    this.keyboardShortcuts.register('l', 'Toggle activity log', () => {
+    this.keyboardShortcuts.register('l', 'shortcuts.log', () => {
       document.dispatchEvent(new CustomEvent('toggle-activity-log'));
     });
-    this.keyboardShortcuts.register('e', 'Export sensor data', () => {
+    this.keyboardShortcuts.register('e', 'shortcuts.export', () => {
       document.dispatchEvent(new CustomEvent('export-data'));
     });
-    this.keyboardShortcuts.register('f', 'Toggle fullscreen', () => {
+    this.keyboardShortcuts.register('f', 'shortcuts.fullscreen', () => {
       document.dispatchEvent(new CustomEvent('toggle-fullscreen'));
     });
-    this.keyboardShortcuts.register('s', 'Take screenshot', () => {
+    this.keyboardShortcuts.register('s', 'shortcuts.screenshot', () => {
       document.dispatchEvent(new CustomEvent('take-screenshot'));
     });
     this.keyboardShortcuts.init();
@@ -414,14 +417,14 @@ class WiFiDensePoseApp {
     window.addEventListener('error', (event) => {
       if (event.error) {
         console.error('Global error:', event.error);
-        this.showGlobalError('An unexpected error occurred');
+        this.showGlobalError(i18n.t('app.unexpectedError'));
       }
     });
 
     window.addEventListener('unhandledrejection', (event) => {
       if (event.reason) {
         console.error('Unhandled promise rejection:', event.reason);
-        this.showGlobalError('An unexpected error occurred');
+        this.showGlobalError(i18n.t('app.unexpectedError'));
       }
     });
   }

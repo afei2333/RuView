@@ -1,6 +1,8 @@
 // Command Palette - Ctrl+K / Cmd+K to search and execute commands
 // Fuzzy search across tabs, actions, and settings
 
+import { i18n } from './i18n.js';
+
 export class CommandPalette {
   constructor(app) {
     this.app = app;
@@ -17,25 +19,30 @@ export class CommandPalette {
     this.registerCommands();
     this.createDOM();
     this.bindGlobalShortcut();
+    this._unsubLocale = i18n.onLocaleChange(() => {
+      this.commands = [];
+      this.registerCommands();
+      this.onInput();
+    });
   }
 
   registerCommands() {
     // Navigation commands
     const tabs = [
-      { id: 'dashboard', label: 'Dashboard', icon: 'grid' },
-      { id: 'hardware', label: 'Hardware', icon: 'cpu' },
-      { id: 'demo', label: 'Live Demo', icon: 'play' },
-      { id: 'architecture', label: 'Architecture', icon: 'layers' },
-      { id: 'performance', label: 'Performance', icon: 'zap' },
-      { id: 'applications', label: 'Applications', icon: 'box' },
-      { id: 'sensing', label: 'Sensing', icon: 'wifi' },
-      { id: 'training', label: 'Training', icon: 'database' },
+      { id: 'dashboard', label: i18n.t('nav.dashboard'), icon: 'grid' },
+      { id: 'hardware', label: i18n.t('status.hardware'), icon: 'cpu' },
+      { id: 'demo', label: i18n.t('nav.demo'), icon: 'play' },
+      { id: 'architecture', label: i18n.t('nav.architecture'), icon: 'layers' },
+      { id: 'performance', label: i18n.t('nav.performance'), icon: 'zap' },
+      { id: 'applications', label: i18n.t('nav.applications'), icon: 'box' },
+      { id: 'sensing', label: i18n.t('nav.sensing'), icon: 'wifi' },
+      { id: 'training', label: i18n.t('nav.training'), icon: 'database' },
     ];
 
     tabs.forEach(tab => {
       this.commands.push({
-        category: 'Navigation',
-        label: `Go to ${tab.label}`,
+        category: i18n.t('commands.navigation'),
+        label: i18n.t('commands.goTo', { tab: tab.label }),
         keywords: [tab.id, tab.label.toLowerCase()],
         icon: tab.icon,
         action: () => {
@@ -47,15 +54,15 @@ export class CommandPalette {
 
     // External pages
     this.commands.push({
-      category: 'Navigation',
-      label: 'Open Pose Fusion',
+      category: i18n.t('commands.navigation'),
+      label: i18n.t('commands.poseFusion'),
       keywords: ['pose', 'fusion', 'camera'],
       icon: 'external',
       action: () => { window.location.href = 'pose-fusion.html'; }
     });
     this.commands.push({
-      category: 'Navigation',
-      label: 'Open Observatory',
+      category: i18n.t('commands.navigation'),
+      label: i18n.t('commands.observatory'),
       keywords: ['observatory', '3d', 'signal'],
       icon: 'external',
       action: () => { window.location.href = 'observatory.html'; }
@@ -63,43 +70,43 @@ export class CommandPalette {
 
     // Actions
     this.commands.push({
-      category: 'Actions',
-      label: 'Toggle Dark/Light Theme',
+      category: i18n.t('commands.actions'),
+      label: i18n.t('commands.theme'),
       keywords: ['theme', 'dark', 'light', 'mode', 'color'],
       icon: 'moon',
       action: () => document.dispatchEvent(new CustomEvent('toggle-theme'))
     });
     this.commands.push({
-      category: 'Actions',
-      label: 'Toggle Performance Monitor',
+      category: i18n.t('commands.actions'),
+      label: i18n.t('commands.performance'),
       keywords: ['perf', 'fps', 'memory', 'performance', 'monitor'],
       icon: 'activity',
       action: () => document.dispatchEvent(new CustomEvent('toggle-perf-monitor'))
     });
     this.commands.push({
-      category: 'Actions',
-      label: 'Toggle Activity Log',
+      category: i18n.t('commands.actions'),
+      label: i18n.t('commands.activity'),
       keywords: ['log', 'events', 'activity', 'history'],
       icon: 'list',
       action: () => document.dispatchEvent(new CustomEvent('toggle-activity-log'))
     });
     this.commands.push({
-      category: 'Actions',
-      label: 'Export Sensor Data',
+      category: i18n.t('commands.actions'),
+      label: i18n.t('commands.export'),
       keywords: ['export', 'download', 'csv', 'json', 'data', 'save'],
       icon: 'download',
       action: () => document.dispatchEvent(new CustomEvent('export-data'))
     });
     this.commands.push({
-      category: 'Actions',
-      label: 'Toggle Fullscreen',
+      category: i18n.t('commands.actions'),
+      label: i18n.t('commands.fullscreen'),
       keywords: ['fullscreen', 'full', 'screen', 'maximize'],
       icon: 'maximize',
       action: () => document.dispatchEvent(new CustomEvent('toggle-fullscreen'))
     });
     this.commands.push({
-      category: 'Actions',
-      label: 'Show Keyboard Shortcuts',
+      category: i18n.t('commands.actions'),
+      label: i18n.t('commands.shortcuts'),
       keywords: ['keyboard', 'shortcuts', 'keys', 'help'],
       icon: 'keyboard',
       action: () => document.dispatchEvent(new CustomEvent('show-shortcuts'))
@@ -110,21 +117,22 @@ export class CommandPalette {
     this.overlay = document.createElement('div');
     this.overlay.className = 'cmd-palette-overlay';
     this.overlay.setAttribute('role', 'dialog');
-    this.overlay.setAttribute('aria-label', 'Command palette');
+    this.overlay.setAttribute('aria-label', i18n.t('commands.palette'));
+    this.overlay.setAttribute('data-i18n-aria', 'commands.palette');
     this.overlay.setAttribute('aria-modal', 'true');
 
     this.overlay.innerHTML = `
       <div class="cmd-palette">
         <div class="cmd-palette-input-wrap">
           <svg class="cmd-palette-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" class="cmd-palette-input" placeholder="Type a command..." aria-label="Search commands" autocomplete="off" spellcheck="false">
+          <input type="text" class="cmd-palette-input" placeholder="Type a command..." data-i18n-placeholder="commands.placeholder" aria-label="Search commands" data-i18n-aria="commands.search" autocomplete="off" spellcheck="false">
           <kbd class="cmd-palette-hint">Esc</kbd>
         </div>
-        <div class="cmd-palette-results" role="listbox" aria-label="Commands"></div>
+        <div class="cmd-palette-results" role="listbox" aria-label="Commands" data-i18n-aria="commands.list"></div>
         <div class="cmd-palette-footer">
-          <span><kbd>Up</kbd><kbd>Down</kbd> navigate</span>
-          <span><kbd>Enter</kbd> execute</span>
-          <span><kbd>Esc</kbd> close</span>
+          <span><kbd>Up</kbd><kbd>Down</kbd> <span data-i18n="commands.navigation">Navigation</span></span>
+          <span><kbd>Enter</kbd> <span data-i18n="misc.confirm">Confirm</span></span>
+          <span><kbd>Esc</kbd> <span data-i18n="misc.close">Close</span></span>
         </div>
       </div>
     `;
@@ -140,6 +148,7 @@ export class CommandPalette {
     this.input.addEventListener('keydown', (e) => this.onKeydown(e));
 
     document.body.appendChild(this.overlay);
+    i18n.applyTranslations(this.overlay);
   }
 
   bindGlobalShortcut() {
@@ -205,7 +214,8 @@ export class CommandPalette {
 
   renderResults() {
     if (this.filteredCommands.length === 0) {
-      this.results.innerHTML = '<div class="cmd-palette-empty">No matching commands</div>';
+      this.results.innerHTML = '<div class="cmd-palette-empty" data-i18n="commands.none">No matching commands</div>';
+      i18n.applyTranslations(this.results);
       return;
     }
 
@@ -304,6 +314,7 @@ export class CommandPalette {
   }
 
   dispose() {
+    this._unsubLocale?.();
     if (this.overlay?.parentNode) {
       this.overlay.parentNode.removeChild(this.overlay);
     }

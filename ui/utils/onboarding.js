@@ -1,6 +1,8 @@
 // Onboarding Tour - Interactive first-run walkthrough
 // Shows on first visit, can be re-triggered from command palette or help
 
+import { i18n } from './i18n.js';
+
 const STORAGE_KEY = 'ruview-onboarding-done';
 
 export class Onboarding {
@@ -14,6 +16,10 @@ export class Onboarding {
 
   init() {
     this.defineSteps();
+    this._unsubLocale = i18n.onLocaleChange(() => {
+      this.defineSteps();
+      if (this.active) this.showStep();
+    });
     document.addEventListener('start-onboarding', () => this.start());
 
     // Auto-start on first visit
@@ -26,38 +32,38 @@ export class Onboarding {
   defineSteps() {
     this.steps = [
       {
-        title: 'Welcome to RuView',
-        text: 'WiFi-based human pose estimation that works through walls. Let\'s take a quick tour of the dashboard.',
+        title: i18n.t('ui.welcomeToRuView'),
+        text: i18n.t('onboarding.welcome'),
         target: null, // No highlight, centered
         position: 'center'
       },
       {
-        title: 'System Status',
-        text: 'Monitor your WiFi sensing hardware and API server status in real time. Green means everything is connected.',
+        title: i18n.t('dashboard.status'),
+        text: i18n.t('onboarding.status'),
         target: '.live-status-panel',
         position: 'bottom'
       },
       {
-        title: 'Live Demo',
-        text: 'Switch to the Live Demo tab to see real-time pose detection. Connect an ESP32 sensor or use the built-in simulation.',
+        title: i18n.t('nav.demo'),
+        text: i18n.t('onboarding.demo'),
         target: '[data-tab="demo"]',
         position: 'bottom'
       },
       {
-        title: 'Sensing Visualization',
-        text: 'The Sensing tab shows a 3D Gaussian splat visualization of WiFi signal fields, with real-time metrics.',
+        title: i18n.t('ui.sensingVisualization'),
+        text: i18n.t('onboarding.sensing'),
         target: '[data-tab="sensing"]',
         position: 'bottom'
       },
       {
-        title: 'Keyboard Shortcuts',
-        text: 'Press ? for shortcuts, Ctrl+K for the command palette, or use number keys 1-8 to switch tabs quickly.',
+        title: i18n.t('ui.keyboardShortcuts'),
+        text: i18n.t('onboarding.shortcuts'),
         target: null,
         position: 'center'
       },
       {
-        title: 'You\'re all set!',
-        text: 'Explore the dashboard, connect hardware, or start the demo. You can replay this tour anytime from the command palette.',
+        title: i18n.t('onboarding.ready'),
+        text: i18n.t('onboarding.explore'),
         target: null,
         position: 'center'
       }
@@ -88,7 +94,8 @@ export class Onboarding {
     this.overlay = document.createElement('div');
     this.overlay.className = 'onboarding-overlay';
     this.overlay.setAttribute('role', 'dialog');
-    this.overlay.setAttribute('aria-label', 'Onboarding tour');
+    this.overlay.setAttribute('aria-label', i18n.t('ui.onboardingTour'));
+    this.overlay.setAttribute('data-i18n-aria', 'ui.onboardingTour');
     this.overlay.setAttribute('aria-modal', 'true');
     document.body.appendChild(this.overlay);
   }
@@ -128,14 +135,16 @@ export class Onboarding {
         <h3 class="onboarding-title">${step.title}</h3>
         <p class="onboarding-text">${step.text}</p>
         <div class="onboarding-actions">
-          <button class="onboarding-skip">Skip tour</button>
+          <button class="onboarding-skip" data-i18n="ui.skipTour">Skip tour</button>
           <div class="onboarding-nav">
-            ${!isFirst ? '<button class="onboarding-prev">Back</button>' : ''}
-            <button class="onboarding-next">${isLast ? 'Get started' : 'Next'}</button>
+            ${!isFirst ? '<button class="onboarding-prev" data-i18n="ui.back">Back</button>' : ''}
+            <button class="onboarding-next">${isLast ? i18n.t('ui.getStarted') : i18n.t('ui.next')}</button>
           </div>
         </div>
       </div>
     `;
+
+    i18n.applyTranslations(this.overlay);
 
     // Bind events
     this.overlay.querySelector('.onboarding-skip').addEventListener('click', () => this.finish());
@@ -187,6 +196,7 @@ export class Onboarding {
   }
 
   dispose() {
+    this._unsubLocale?.();
     this.finish();
   }
 }

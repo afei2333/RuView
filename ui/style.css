@@ -4185,5 +4185,4 @@ a:focus-visible,
 
 @media (max-width: 640px) {
   .uptime-clock { display: none; }
-  .lang-selector-wrap { display: none; }
 }

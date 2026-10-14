@@ -48,6 +48,17 @@ ui/
 
 ## Features
 
+### Observatory language
+
+Open `ui/observatory.html` and use the language selector in the top-right corner
+to switch between English and Simplified Chinese. The Observatory shares the
+dashboard's `ruview-locale` preference and detects the browser language when no
+choice is saved. HUD labels, scenario descriptions, module badges, alerts, and
+settings update immediately without restarting the scene or changing its data.
+Language initialization does not depend on the Three.js CDN being available.
+The existing Polish locale remains selectable, with English fallback for
+Observatory-specific messages.
+
 ### WiFi Sensing Tab
 - 3D Gaussian-splat signal field visualization (Three.js)
 - Real-time RSSI, variance, motion band, breathing band metrics
@@ -162,6 +173,27 @@ sensing-server --source esp32 --model path/to/model.rvf --ui-path ./ui
 
 ## Configuration
 
+### Language
+
+The tabbed dashboard (`index.html`) supports English, Polish, and Simplified
+Chinese. Choose **EN**, **PL**, or **中文** in the header, including on mobile.
+The choice is saved in browser local storage (`ruview-locale`) and restored on
+reload. Without a saved choice, a Chinese browser locale selects Simplified
+Chinese, a Polish locale selects Polish, and other locales select English.
+
+Chinese covers navigation, dashboard content, hardware, live demonstration,
+sensing, training/model panels, settings, and dashboard controls. Switching
+languages updates dynamic status text without restarting sensor streams.
+Technical identifiers, server-provided diagnostics, and captured logs retain
+their original values. The separate Observatory and Pose Fusion pages have
+their own interfaces and are outside this dashboard's language selector.
+
+Translations live in `utils/i18n.js`. Static text uses `data-i18n`; placeholders,
+accessible labels, titles, and image descriptions use its attribute variants.
+Late-mounted panels call `i18n.applyTranslations(container)`, and stateful
+components subscribe to `i18n.onLocaleChange` and release that subscription on
+disposal. New keys fall back to English when absent from a selected language.
+
 ### API Configuration
 Edit `config/api.config.js`:
 
@@ -188,6 +220,14 @@ python -m http.server 3000
 ```
 
 Test categories: API configuration, API service, WebSocket, pose service, health service, UI components, integration.
+
+Run the dashboard language regression tests without installing dependencies:
+
+```bash
+node --test ui/utils/i18n.test.mjs
+```
+
+Run this command from the repository root.
 
 ## Styling
 

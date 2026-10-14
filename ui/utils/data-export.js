@@ -1,5 +1,7 @@
 // Data Export Utility - Export sensor/pose data as JSON or CSV
 
+import { i18n } from './i18n.js';
+
 import { sensingService } from '../services/sensing.service.js';
 import { toastManager } from './toast.js';
 
@@ -42,7 +44,7 @@ export class DataExport {
 
   showExportDialog() {
     if (this.buffer.length === 0) {
-      toastManager.warning('No sensor data to export. Connect to a data source first.');
+      toastManager.warning(i18n.t('export.noData'));
       return;
     }
 
@@ -50,29 +52,29 @@ export class DataExport {
     const overlay = document.createElement('div');
     overlay.className = 'export-dialog-overlay';
     overlay.innerHTML = `
-      <div class="export-dialog" role="dialog" aria-label="Export data" aria-modal="true">
-        <h3>Export Sensor Data</h3>
-        <p class="export-dialog-info">${this.buffer.length} data points available</p>
+      <div class="export-dialog" role="dialog" aria-label="Export data" data-i18n-aria="action.exportData" aria-modal="true">
+        <h3 data-i18n="commands.export">Export Sensor Data</h3>
+        <p class="export-dialog-info">${i18n.t('export.count', { count: this.buffer.length })}</p>
         <div class="export-dialog-options">
           <label class="export-option">
             <input type="radio" name="export-format" value="json" checked>
             <span>JSON</span>
-            <small>Full data with nested fields</small>
+            <small data-i18n="export.nested">Full data with nested fields</small>
           </label>
           <label class="export-option">
             <input type="radio" name="export-format" value="csv">
             <span>CSV</span>
-            <small>Flat table, spreadsheet-ready</small>
+            <small data-i18n="export.flat">Flat table, spreadsheet-ready</small>
           </label>
         </div>
         <div class="export-dialog-range">
           <label>
-            Last <input type="number" id="export-count" value="${Math.min(this.buffer.length, 500)}" min="1" max="${this.buffer.length}"> data points
+            <span data-i18n="export.last">Last</span> <input type="number" id="export-count" value="${Math.min(this.buffer.length, 500)}" min="1" max="${this.buffer.length}"> <span data-i18n="export.points">data points</span>
           </label>
         </div>
         <div class="export-dialog-actions">
-          <button class="btn btn--secondary export-cancel">Cancel</button>
-          <button class="btn btn--primary export-confirm">Export</button>
+          <button class="btn btn--secondary export-cancel" data-i18n="misc.cancel">Cancel</button>
+          <button class="btn btn--primary export-confirm" data-i18n="ui.export">Export</button>
         </div>
       </div>
     `;
@@ -89,6 +91,7 @@ export class DataExport {
     });
 
     document.body.appendChild(overlay);
+    i18n.applyTranslations(overlay);
     overlay.querySelector('.export-confirm').focus();
   }
 

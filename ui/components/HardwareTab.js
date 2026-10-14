@@ -1,5 +1,7 @@
 // Hardware Tab Component
 
+import { i18n } from '../utils/i18n.js';
+
 export class HardwareTab {
   constructor(containerElement) {
     this.container = containerElement;
@@ -10,6 +12,9 @@ export class HardwareTab {
 
   // Initialize component
   init() {
+    this._unsubLocale = i18n.onLocaleChange(() => {
+      this.updateAntennaArray(this.antennas.filter(a => a.classList.contains('active')));
+    });
     this.setupAntennas();
     this.startCSISimulation();
   }
@@ -127,9 +132,9 @@ export class HardwareTab {
       return div;
     };
     
-    arrayStatus.appendChild(createInfoDiv('Active TX:', `${txActive}/3`));
-    arrayStatus.appendChild(createInfoDiv('Active RX:', `${rxActive}/6`));
-    arrayStatus.appendChild(createInfoDiv('Signal Quality:', `${this.calculateSignalQuality(txActive, rxActive)}%`));
+    arrayStatus.appendChild(createInfoDiv(i18n.t('ui.activeTXLabel'), `${txActive}/3`));
+    arrayStatus.appendChild(createInfoDiv(i18n.t('ui.activeRXLabel'), `${rxActive}/6`));
+    arrayStatus.appendChild(createInfoDiv(i18n.t('ui.signalQualityLabel'), `${this.calculateSignalQuality(txActive, rxActive)}%`));
   }
 
   // Calculate signal quality based on active antennas
@@ -162,6 +167,7 @@ export class HardwareTab {
 
   // Clean up
   dispose() {
+    this._unsubLocale?.();
     if (this.csiUpdateInterval) {
       clearInterval(this.csiUpdateInterval);
       this.csiUpdateInterval = null;

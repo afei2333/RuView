@@ -1,6 +1,8 @@
 // Performance Monitor Overlay
 // Shows FPS, memory usage, and network latency in real-time
 
+import { i18n } from './i18n.js';
+
 export class PerfMonitor {
   constructor() {
     this.visible = false;
@@ -21,11 +23,12 @@ export class PerfMonitor {
     this.panel = document.createElement('div');
     this.panel.className = 'perf-monitor';
     this.panel.setAttribute('role', 'status');
-    this.panel.setAttribute('aria-label', 'Performance monitor');
+    this.panel.setAttribute('aria-label', i18n.t('perf.label'));
+    this.panel.setAttribute('data-i18n-aria', 'perf.label');
     this.panel.innerHTML = `
       <div class="perf-header">
-        <span>PERF</span>
-        <button class="perf-close" aria-label="Close performance monitor">&times;</button>
+        <span data-i18n="perf.title">PERF</span>
+        <button class="perf-close" aria-label="Close performance monitor" data-i18n-aria="perf.close">&times;</button>
       </div>
       <div class="perf-metrics">
         <div class="perf-row">
@@ -34,12 +37,12 @@ export class PerfMonitor {
           <canvas class="perf-spark" data-spark="fps" width="60" height="20"></canvas>
         </div>
         <div class="perf-row">
-          <span class="perf-label">MEM</span>
+          <span class="perf-label" data-i18n="perf.memory">MEM</span>
           <span class="perf-value" data-metric="memory">--</span>
           <canvas class="perf-spark" data-spark="memory" width="60" height="20"></canvas>
         </div>
         <div class="perf-row">
-          <span class="perf-label">LAT</span>
+          <span class="perf-label" data-i18n="perf.latency">LAT</span>
           <span class="perf-value" data-metric="latency">--</span>
           <canvas class="perf-spark" data-spark="latency" width="60" height="20"></canvas>
         </div>
@@ -56,6 +59,7 @@ export class PerfMonitor {
     this.makeDraggable();
 
     document.body.appendChild(this.panel);
+    i18n.applyTranslations(this.panel);
 
     this.sparkData = {
       fps: [],

@@ -1,6 +1,8 @@
 // Keyboard Shortcuts System
 // Press '?' to show help overlay, number keys to switch tabs, etc.
 
+import { i18n } from './i18n.js';
+
 export class KeyboardShortcuts {
   constructor(app) {
     this.app = app;
@@ -12,18 +14,18 @@ export class KeyboardShortcuts {
   }
 
   registerDefaults() {
-    this.register('?', 'Show keyboard shortcuts', () => this.toggleHelp());
-    this.register('Escape', 'Close overlay / dialog', () => this.closeAll());
-    this.register('1', 'Switch to Dashboard tab', () => this.switchTab('dashboard'));
-    this.register('2', 'Switch to Hardware tab', () => this.switchTab('hardware'));
-    this.register('3', 'Switch to Live Demo tab', () => this.switchTab('demo'));
-    this.register('4', 'Switch to Architecture tab', () => this.switchTab('architecture'));
-    this.register('5', 'Switch to Performance tab', () => this.switchTab('performance'));
-    this.register('6', 'Switch to Applications tab', () => this.switchTab('applications'));
-    this.register('7', 'Switch to Sensing tab', () => this.switchTab('sensing'));
-    this.register('8', 'Switch to Training tab', () => this.switchTab('training'));
-    this.register('p', 'Toggle performance monitor', () => this.togglePerfMonitor());
-    this.register('t', 'Toggle dark/light theme', () => this.toggleTheme());
+    this.register('?', 'shortcuts.show', () => this.toggleHelp());
+    this.register('Escape', 'shortcuts.close', () => this.closeAll());
+    this.register('1', 'shortcuts.dashboard', () => this.switchTab('dashboard'));
+    this.register('2', 'shortcuts.hardware', () => this.switchTab('hardware'));
+    this.register('3', 'shortcuts.demo', () => this.switchTab('demo'));
+    this.register('4', 'shortcuts.architecture', () => this.switchTab('architecture'));
+    this.register('5', 'shortcuts.performance', () => this.switchTab('performance'));
+    this.register('6', 'shortcuts.applications', () => this.switchTab('applications'));
+    this.register('7', 'shortcuts.sensing', () => this.switchTab('sensing'));
+    this.register('8', 'shortcuts.training', () => this.switchTab('training'));
+    this.register('p', 'shortcuts.monitor', () => this.togglePerfMonitor());
+    this.register('t', 'ui.toggleDarkLightTheme', () => this.toggleTheme());
   }
 
   register(key, description, handler) {
@@ -33,6 +35,12 @@ export class KeyboardShortcuts {
   init() {
     document.addEventListener('keydown', (e) => this.handleKeydown(e));
     this.createOverlay();
+    i18n.applyTranslations(this.overlay);
+    this._unsubLocale = i18n.onLocaleChange(() => {
+      this.overlay.innerHTML = this.buildHelpHTML();
+      i18n.applyTranslations(this.overlay);
+      if (this.helpVisible) this.showHelp();
+    });
   }
 
   handleKeydown(e) {
@@ -96,17 +104,17 @@ export class KeyboardShortcuts {
   buildHelpHTML() {
     const groups = [
       {
-        title: 'Navigation',
+        title: 'commands.navigation',
         items: Array.from(this.shortcuts.entries())
           .filter(([key]) => /^[1-8]$/.test(key))
       },
       {
-        title: 'Actions',
+        title: 'commands.actions',
         items: Array.from(this.shortcuts.entries())
           .filter(([key]) => /^[a-z]$/.test(key))
       },
       {
-        title: 'General',
+        title: 'commands.general',
         items: Array.from(this.shortcuts.entries())
           .filter(([key]) => !/^[1-8a-z]$/.test(key))
       }
@@ -115,17 +123,17 @@ export class KeyboardShortcuts {
     return `
       <div class="shortcuts-panel">
         <div class="shortcuts-header">
-          <h2>Keyboard Shortcuts</h2>
-          <button class="shortcuts-close" aria-label="Close">&times;</button>
+          <h2 data-i18n="ui.keyboardShortcuts">Keyboard Shortcuts</h2>
+          <button class="shortcuts-close" aria-label="Close" data-i18n-aria="misc.close">&times;</button>
         </div>
         <div class="shortcuts-body">
           ${groups.map(group => `
             <div class="shortcuts-group">
-              <h3>${group.title}</h3>
+              <h3>${i18n.t(group.title)}</h3>
               ${group.items.map(([key, { description }]) => `
                 <div class="shortcut-row">
                   <kbd>${this.formatKey(key)}</kbd>
-                  <span>${description}</span>
+                  <span>${i18n.t(description)}</span>
                 </div>
               `).join('')}
             </div>
@@ -161,6 +169,7 @@ export class KeyboardShortcuts {
   }
 
   dispose() {
+    this._unsubLocale?.();
     if (this.overlay?.parentNode) {
       this.overlay.parentNode.removeChild(this.overlay);
     }

@@ -1,6 +1,8 @@
 // Mobile Navigation - Hamburger menu for small screens
 // Replaces wrapped tab bar with a slide-out drawer on mobile
 
+import { i18n } from './i18n.js';
+
 export class MobileNav {
   constructor() {
     this.drawer = null;
@@ -20,7 +22,8 @@ export class MobileNav {
   createHamburger() {
     this.hamburger = document.createElement('button');
     this.hamburger.className = 'mobile-hamburger';
-    this.hamburger.setAttribute('aria-label', 'Open navigation menu');
+    this.hamburger.setAttribute('aria-label', i18n.t('nav.openMenu'));
+    this.hamburger.setAttribute('data-i18n-aria', 'nav.openMenu');
     this.hamburger.setAttribute('aria-expanded', 'false');
     this.hamburger.innerHTML = `
       <span class="hamburger-line"></span>
@@ -47,7 +50,8 @@ export class MobileNav {
     this.drawer = document.createElement('nav');
     this.drawer.className = 'mobile-nav-drawer';
     this.drawer.setAttribute('role', 'navigation');
-    this.drawer.setAttribute('aria-label', 'Mobile navigation');
+    this.drawer.setAttribute('aria-label', i18n.t('nav.mobile'));
+    this.drawer.setAttribute('data-i18n-aria', 'nav.mobile');
 
     // Clone tabs into drawer
     const tabs = document.querySelectorAll('.nav-tabs .nav-tab');
@@ -58,6 +62,8 @@ export class MobileNav {
       const item = document.createElement(tab.tagName === 'A' ? 'a' : 'button');
       item.className = 'mobile-nav-item';
       item.textContent = tab.textContent.trim();
+      const labelKey = tab.getAttribute('data-i18n');
+      if (labelKey) item.setAttribute('data-i18n', labelKey);
 
       if (tab.tagName === 'A') {
         item.href = tab.href;
@@ -85,7 +91,7 @@ export class MobileNav {
     // Keyboard hint at bottom
     const hint = document.createElement('div');
     hint.className = 'mobile-nav-hint';
-    hint.textContent = 'Tip: Press Ctrl+K for command palette';
+    hint.textContent = i18n.t('nav.hint');
     this.drawer.appendChild(hint);
 
     document.body.appendChild(this.drawer);

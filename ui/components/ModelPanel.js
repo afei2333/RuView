@@ -1,6 +1,8 @@
 // ModelPanel Component for WiFi-DensePose UI
 // Dark-mode panel for model management: listing, loading, LoRA profiles.
 
+import { i18n } from '../utils/i18n.js';
+
 import { modelService } from '../services/model.service.js';
 
 const MP_STYLES = `
@@ -51,6 +53,12 @@ export default class ModelPanel {
     this.render();
     this.refresh();
     this.unsubs.push(
+      i18n.onLocaleChange(() => {
+        const profile = this.container.querySelector('.mp-lora-select')?.value;
+        this.render();
+        const select = this.container.querySelector('.mp-lora-select');
+        if (select && profile !== undefined) select.value = profile;
+      }),
       modelService.on('model-loaded', () => this.refresh()),
       modelService.on('model-unloaded', () => this.refresh()),
       modelService.on('lora-activated', () => this.refresh())
@@ -77,26 +85,26 @@ export default class ModelPanel {
   async _load(id) {
     this._set({ loading: true, error: null });
     try { await modelService.loadModel(id); await this.refresh(); }
-    catch (e) { this._set({ loading: false, error: `Load failed: ${e.message}` }); }
+    catch (e) { this._set({ loading: false, error: i18n.t('error.load', { message: e.message }) }); }
   }
 
   async _unload() {
     this._set({ loading: true, error: null });
     try { await modelService.unloadModel(); await this.refresh(); }
-    catch (e) { this._set({ loading: false, error: `Unload failed: ${e.message}` }); }
+    catch (e) { this._set({ loading: false, error: i18n.t('error.unload', { message: e.message }) }); }
   }
 
   async _delete(id) {
     this._set({ loading: true, error: null });
     try { await modelService.deleteModel(id); await this.refresh(); }
-    catch (e) { this._set({ loading: false, error: `Delete failed: ${e.message}` }); }
+    catch (e) { this._set({ loading: false, error: i18n.t('error.delete', { message: e.message }) }); }
   }
 
   async _loraChange(modelId, profile) {
     if (!profile) return;
     this._set({ loading: true, error: null });
     try { await modelService.activateLoraProfile(modelId, profile); await this.refresh(); }
-    catch (e) { this._set({ loading: false, error: `LoRA failed: ${e.message}` }); }
+    catch (e) { this._set({ loading: false, error: i18n.t('error.lora', { message: e.message }) }); }
   }
 
   _set(p) { Object.assign(this.state, p); this.render(); }
@@ -110,7 +118,7 @@ export default class ModelPanel {
 
     // Header
     const hdr = this._el('div', 'mp-header');
-    hdr.appendChild(this._el('span', 'mp-title', 'Model Library'));
+    hdr.appendChild(this._el('span', 'mp-title', i18n.t('ui.modelLibrary')));
     hdr.appendChild(this._el('span', 'mp-badge', String(this.state.models.length)));
     panel.appendChild(hdr);
 
@@ -121,12 +129,12 @@ export default class ModelPanel {
 
     // List
     const ls = this._el('div', 'mp-list-section');
-    ls.appendChild(this._el('div', 'mp-section-title', 'Available Models'));
+    ls.appendChild(this._el('div', 'mp-section-title', i18n.t('ui.availableModels')));
     const models = this.state.models.filter(
       m => !(this.state.activeModel && this.state.activeModel.model_id === m.id)
     );
     if (models.length === 0 && !this.state.loading) {
-      ls.appendChild(this._el('div', 'mp-empty', 'No .rvf models found. Train a model or place .rvf files in data/models/'));
+      ls.appendChild(this._el('div', 'mp-empty', i18n.t('ui.noRvfModelsFoundTrainAModelOrPlaceRvfFilesInDataModels')));
     } else {
       models.forEach(m => ls.appendChild(this._renderCard(m)));
     }
@@ -134,7 +142,7 @@ export default class ModelPanel {
 
     // Footer
     const ft = this._el('div', 'mp-footer');
-    const rb = this._btn('Refresh', 'mp-btn mp-btn-secondary', () => this.refresh());
+    const rb = this._btn(i18n.t('ui.refresh'), 'mp-btn mp-btn-secondary', () => this.refresh());
     rb.disabled = this.state.loading;
     ft.appendChild(rb);
     panel.appendChild(ft);
@@ -145,7 +153,7 @@ export default class ModelPanel {
   _renderActive() {
     const am = this.state.activeModel;
     const card = this._el('div', 'mp-active-card');
-    card.appendChild(this._el('div', 'mp-active-name', am.model_id || 'Active Model'));
+    card.appendChild(this._el('div', 'mp-active-name', am.model_id || i18n.t('ui.activeModel')));
 
     const full = this.state.models.find(m => m.id === am.model_id);
     if (full) {
@@ -157,17 +165,17 @@ export default class ModelPanel {
 
     if (am.avg_inference_ms != null) {
       const st = this._el('div', 'mp-active-stats');
-      st.innerHTML = `<span class="mp-stat-label">Inference:</span> <span class="mp-stat-value">${am.avg_inference_ms.toFixed(1)} ms</span><span class="mp-stat-sep">|</span><span class="mp-stat-label">Frames:</span> <span class="mp-stat-value">${am.frames_processed ?? 0}</span>`;
+      st.innerHTML = `<span class="mp-stat-label">${i18n.t('ui.inferenceLabel')}</span> <span class="mp-stat-value">${am.avg_inference_ms.toFixed(1)} ms</span><span class="mp-stat-sep">|</span><span class="mp-stat-label">${i18n.t('ui.framesLabel')}</span> <span class="mp-stat-value">${am.frames_processed ?? 0}</span>`;
       card.appendChild(st);
     }
 
     if (this.state.loraProfiles.length > 0) {
       const row = this._el('div', 'mp-lora-row');
-      row.appendChild(this._el('span', 'mp-lora-label', 'LoRA Profile:'));
+      row.appendChild(this._el('span', 'mp-lora-label', i18n.t('ui.loraProfileLabel')));
       const sel = document.createElement('select');
       sel.className = 'mp-lora-select';
       const def = document.createElement('option');
-      def.value = ''; def.textContent = '-- none --'; sel.appendChild(def);
+      def.value = ''; def.textContent = i18n.t('ui.noneText'); sel.appendChild(def);
       this.state.loraProfiles.forEach(p => {
         const o = document.createElement('option');
         o.value = p; o.textContent = p; sel.appendChild(o);
@@ -177,7 +185,7 @@ export default class ModelPanel {
       card.appendChild(row);
     }
 
-    const ub = this._btn('Unload', 'mp-btn mp-btn-danger', () => this._unload());
+    const ub = this._btn(i18n.t('ui.unload'), 'mp-btn mp-btn-danger', () => this._unload());
     ub.disabled = this.state.loading;
     card.appendChild(ub);
     return card;
@@ -194,9 +202,9 @@ export default class ModelPanel {
     card.appendChild(meta);
 
     const acts = this._el('div', 'mp-card-actions');
-    const lb = this._btn('Load', 'mp-btn mp-btn-success', () => this._load(model.id));
+    const lb = this._btn(i18n.t('ui.load'), 'mp-btn mp-btn-success', () => this._load(model.id));
     lb.disabled = this.state.loading;
-    const db = this._btn('Delete', 'mp-btn mp-btn-muted', () => this._delete(model.id));
+    const db = this._btn(i18n.t('ui.delete'), 'mp-btn mp-btn-muted', () => this._delete(model.id));
     db.disabled = this.state.loading;
     acts.appendChild(lb); acts.appendChild(db);
     card.appendChild(acts);
