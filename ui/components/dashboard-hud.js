@@ -1,6 +1,8 @@
 // Dashboard HUD Overlay - WiFi DensePose 3D Visualization
 // Connection status, FPS counter, detection confidence, person count, sensing mode
 
+import { i18n } from '../utils/i18n.js';
+
 export class DashboardHUD {
   constructor(container) {
     this.container = typeof container === 'string'
@@ -24,6 +26,9 @@ export class DashboardHUD {
     this._lastFpsUpdate = 0;
 
     this._build();
+    i18n.applyTranslations(this.hudElement);
+    this._render();
+    this._unsubLocale = i18n.onLocaleChange(() => this._render());
   }
 
   _build() {
@@ -259,15 +264,15 @@ export class DashboardHUD {
           <span class="hud-value" id="hud-conn-status">Disconnected</span>
         </div>
         <div class="hud-row">
-          <span class="hud-label">Latency</span>
+          <span class="hud-label" data-i18n="perf.latency">Latency</span>
           <span class="hud-value" id="hud-latency">-- ms</span>
         </div>
         <div class="hud-row">
-          <span class="hud-label">Messages</span>
+          <span class="hud-label" data-i18n="viz.messages">Messages</span>
           <span class="hud-value" id="hud-msg-count">0</span>
         </div>
         <div class="hud-row">
-          <span class="hud-label">Uptime</span>
+          <span class="hud-label" data-i18n="viz.uptime">Uptime</span>
           <span class="hud-value" id="hud-uptime">0s</span>
         </div>
       </div>
@@ -276,7 +281,7 @@ export class DashboardHUD {
       <div class="hud-top-right">
         <div class="hud-fps high" id="hud-fps">-- FPS</div>
         <div class="hud-row">
-          <span class="hud-label">Frame</span>
+          <span class="hud-label" data-i18n="viz.frame">Frame</span>
           <span class="hud-value" id="hud-frame-time">-- ms</span>
         </div>
       </div>
@@ -284,11 +289,11 @@ export class DashboardHUD {
       <!-- Bottom-left: detection info -->
       <div class="hud-bottom-left">
         <div class="hud-row">
-          <span class="hud-label">Persons</span>
+          <span class="hud-label" data-i18n="obs.persons">Persons</span>
           <span class="hud-person-count hud-value" id="hud-person-count">0</span>
         </div>
         <div class="hud-row">
-          <span class="hud-label">Confidence</span>
+          <span class="hud-label" data-i18n="obs.confidence">Confidence</span>
           <span class="hud-value" id="hud-confidence">0%</span>
         </div>
         <div class="hud-confidence-bar">
@@ -305,7 +310,7 @@ export class DashboardHUD {
       </div>
 
       <!-- Controls hint -->
-      <div class="hud-controls-hint">
+      <div class="hud-controls-hint" data-i18n="viz.controls">
         Drag to orbit | Scroll to zoom | Right-click to pan
       </div>
     `;
@@ -355,7 +360,7 @@ export class DashboardHUD {
       this._lastFpsUpdate = now;
 
       // Update FPS elements
-      this._els.fps.textContent = `${this.state.fps} FPS`;
+      this._els.fps.textContent = i18n.t('obs.fps', { count: this.state.fps });
       this._els.fps.className = 'hud-fps ' + (
         this.state.fps >= 50 ? 'high' : this.state.fps >= 25 ? 'mid' : 'low'
       );
@@ -366,24 +371,26 @@ export class DashboardHUD {
   _render() {
     const { state } = this;
 
+    this._els.fps.textContent = i18n.t('obs.fps', { count: state.fps });
+
     // Banner
     if (state.isRealData) {
-      this._els.banner.textContent = 'REAL DATA - LIVE STREAM';
+      this._els.banner.textContent = i18n.t('viz.real');
       this._els.banner.className = 'hud-banner real';
     } else {
-      this._els.banner.textContent = 'MOCK DATA - DEMO MODE';
+      this._els.banner.textContent = i18n.t('viz.mock');
       this._els.banner.className = 'hud-banner mock';
     }
 
     // Connection status
     this._els.statusDot.className = `hud-status-dot ${state.connectionStatus}`;
     const statusText = {
-      connected: 'Connected',
-      disconnected: 'Disconnected',
-      connecting: 'Connecting...',
-      error: 'Error'
+      connected: i18n.t('conn.connected'),
+      disconnected: i18n.t('ui.disconnected'),
+      connecting: i18n.t('conn.connecting'),
+      error: i18n.t('state.error')
     };
-    this._els.connStatus.textContent = statusText[state.connectionStatus] || 'Unknown';
+    this._els.connStatus.textContent = statusText[state.connectionStatus] || i18n.t('ui.unknown');
 
     // Latency
     this._els.latency.textContent = state.latency > 0 ? `${state.latency.toFixed(0)} ms` : '-- ms';
@@ -417,11 +424,12 @@ export class DashboardHUD {
 
     // Sensing mode
     const modeLower = (state.sensingMode || 'Mock').toLowerCase();
-    this._els.modeBadge.textContent = state.sensingMode.toUpperCase();
+    this._els.modeBadge.textContent = modeLower === 'mock' ? i18n.t('viz.mockMode') : state.sensingMode.toUpperCase();
     this._els.modeBadge.className = `hud-mode-badge ${modeLower}`;
   }
 
   dispose() {
+    this._unsubLocale?.();
     if (this.hudElement && this.hudElement.parentNode) {
       this.hudElement.parentNode.removeChild(this.hudElement);
     }

@@ -108,6 +108,12 @@ export class SettingsPanel {
     // Create DOM structure
     this.createDOMStructure();
     i18n.applyTranslations(this.container);
+    this._unsubLocale = i18n.onLocaleChange(() => {
+      if (this._status) {
+        const status = document.getElementById(`settings-status-${this.containerId}`);
+        status.textContent = i18n.t(this._status.key, this._status.params);
+      }
+    });
     
     // Set up event handlers
     this.setupEventHandlers();
@@ -685,7 +691,7 @@ export class SettingsPanel {
     this.settings[key] = value;
     this.saveSettings();
     this.notifyCallback('onSettingsChange', { key, value, settings: this.settings });
-    this.updateStatus(`Updated ${key}`);
+    this.updateStatus('settings.updated');
     this.logger.debug('Setting updated', { key, value });
   }
 
@@ -741,7 +747,7 @@ export class SettingsPanel {
       this.updateUI();
       this.saveSettings();
       this.notifyCallback('onSettingsChange', { reset: true, settings: this.settings });
-      this.updateStatus('Settings reset to defaults');
+      this.updateStatus('settings.resetDone');
       this.logger.info('Settings reset to defaults');
     }
   }
@@ -761,7 +767,7 @@ export class SettingsPanel {
     a.click();
     URL.revokeObjectURL(url);
     
-    this.updateStatus('Settings exported');
+    this.updateStatus('settings.exported');
     this.notifyCallback('onExport', data);
     this.logger.info('Settings exported');
   }
@@ -781,15 +787,15 @@ export class SettingsPanel {
           this.saveSettings();
           this.notifyCallback('onSettingsChange', { imported: true, settings: this.settings });
           this.notifyCallback('onImport', data);
-          this.updateStatus('Settings imported successfully');
+          this.updateStatus('settings.imported');
           this.logger.info('Settings imported successfully');
         } else {
-          throw new Error('Invalid settings file format');
+          throw new Error(i18n.t('settings.invalidFile'));
         }
       } catch (error) {
-        this.updateStatus('Error importing settings');
+        this.updateStatus('settings.importError');
         this.logger.error('Error importing settings', { error: error.message });
-        alert('Error importing settings: ' + error.message);
+        alert(i18n.t('settings.importErrorDetail', { message: error.message }));
       }
     };
     
@@ -862,14 +868,18 @@ export class SettingsPanel {
     };
   }
 
-  updateStatus(message) {
+  updateStatus(key, params = {}) {
     const statusElement = document.getElementById(`settings-status-${this.containerId}`);
     if (statusElement) {
-      statusElement.textContent = message;
+      this._status = { key, params };
+      statusElement.removeAttribute('data-i18n');
+      statusElement.textContent = i18n.t(key, params);
       
       // Clear status after 3 seconds
-      setTimeout(() => {
-        statusElement.textContent = 'Settings ready';
+      clearTimeout(this._statusTimeout);
+      this._statusTimeout = setTimeout(() => {
+        this._status = { key: 'settings.ready', params: {} };
+        statusElement.textContent = i18n.t('settings.ready');
       }, 3000);
     }
   }
@@ -919,11 +929,11 @@ export class SettingsPanel {
         });
       }
 
-      this.updateStatus('Settings applied to services');
+      this.updateStatus('settings.applied');
       this.logger.info('Settings applied to services');
     } catch (error) {
       this.logger.error('Error applying settings to services', { error: error.message });
-      this.updateStatus('Error applying settings');
+      this.updateStatus('settings.applyError');
     }
   }
 
@@ -958,6 +968,8 @@ export class SettingsPanel {
   // Cleanup
   dispose() {
     this.logger.info('Disposing SettingsPanel component');
+    this._unsubLocale?.();
+    clearTimeout(this._statusTimeout);
     
     try {
       // Save settings before disposing

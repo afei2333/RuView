@@ -185,8 +185,11 @@ Chinese covers navigation, dashboard content, hardware, live demonstration,
 sensing, training/model panels, settings, and dashboard controls. Switching
 languages updates dynamic status text without restarting sensor streams.
 Technical identifiers, server-provided diagnostics, and captured logs retain
-their original values. The separate Observatory and Pose Fusion pages have
-their own interfaces and are outside this dashboard's language selector.
+their original values. Observatory, Pose Fusion (`pose-fusion.html`), and the
+standalone 3D view (`viz.html`) share this preference and provide their own
+language selector.
+Their loading screens, runtime labels, canvas legends, and controls update
+without resetting the scene, changing its pause state, or enabling camera access.
 
 Translations live in `utils/i18n.js`. Static text uses `data-i18n`; placeholders,
 accessible labels, titles, and image descriptions use its attribute variants.

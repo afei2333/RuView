@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WiFi DensePose - 3D Visualization</title>
+  <title data-i18n="viz.title">WiFi DensePose - 3D Visualization</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -61,6 +61,9 @@
       color: #446688;
     }
 
+    .viz-language { position: absolute; top: 76px; right: 12px; z-index: 10000; }
+    .viz-language select { background: #102030; color: #ccddff; padding: 6px; border: 1px solid #446688; }
+
     /* Stats.js panel positioning */
     #stats-container {
       position: absolute;
@@ -78,11 +81,14 @@
       <div class="loading-bar-track">
         <div class="loading-bar-fill" id="loading-fill"></div>
       </div>
-      <div class="loading-status" id="loading-status">Initializing...</div>
+      <div class="loading-status" data-i18n="viz.initializing" id="loading-status">Initializing...</div>
     </div>
     <!-- Stats.js container -->
     <div id="stats-container"></div>
   </div>
+
+  <div class="viz-language"><select id="lang-selector" class="mode-select" aria-label="Language" data-i18n-aria="misc.language"><option value="en">EN</option><option value="pl">PL</option><option value="zh">中文</option></select></div>
+  <script type="module" src="utils/page-language.js"></script>
 
   <!-- Three.js r160 dropped examples/js/ UMD builds. Load via importmap and
        expose THREE + OrbitControls as a mutable global so the existing
@@ -105,6 +111,7 @@
        the component modules run. Two separate module scripts would race
        since each is independently async-resolved. -->
   <script type="module">
+    import { i18n } from './utils/i18n.js';
     import * as ThreeNS from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     const THREE = { ...ThreeNS, OrbitControls };
@@ -134,12 +141,22 @@
       startTime: Date.now()
     };
 
+    let loadingMessage;
+    i18n.onLocaleChange(() => {
+      const status = document.getElementById('loading-status');
+      if (status && loadingMessage) status.textContent = i18n.t(loadingMessage.key, loadingMessage.params);
+    });
+
     // -- Loading Progress --
-    function setLoadingProgress(pct, msg) {
+    function setLoadingProgress(pct, key, params = {}) {
+      loadingMessage = { key, params };
       const fill = document.getElementById('loading-fill');
       const status = document.getElementById('loading-status');
       if (fill) fill.style.width = pct + '%';
-      if (status) status.textContent = msg;
+      if (status) {
+        status.dataset.i18n = key;
+        status.textContent = i18n.t(key, params);
+      }
     }
 
     function hideLoading() {
@@ -164,35 +181,35 @@
       const container = document.getElementById('viz-container');
 
       try {
-        setLoadingProgress(10, 'Creating 3D scene...');
+        setLoadingProgress(10, 'viz.scene');
 
         // 1. Scene setup
         state.scene = new Scene(container);
-        setLoadingProgress(25, 'Building environment...');
+        setLoadingProgress(25, 'viz.environment');
 
         // 2. Environment (room, grid, APs, zones)
         state.environment = new Environment(state.scene.getScene());
-        setLoadingProgress(40, 'Preparing body models...');
+        setLoadingProgress(40, 'viz.models');
 
         // 3. Body model manager
         state.bodyModelManager = new BodyModelManager(state.scene.getScene());
-        setLoadingProgress(55, 'Setting up signal visualization...');
+        setLoadingProgress(55, 'viz.signals');
 
         // 4. Signal visualization
         state.signalViz = new SignalVisualization(state.scene.getScene());
-        setLoadingProgress(65, 'Creating HUD...');
+        setLoadingProgress(65, 'viz.hud');
 
         // 5. Dashboard HUD
         state.hud = new DashboardHUD(container);
-        setLoadingProgress(75, 'Initializing data processor...');
+        setLoadingProgress(75, 'viz.processor');
 
         // 6. Data processor
         state.dataProcessor = new DataProcessor();
-        setLoadingProgress(80, 'Setting up Stats.js...');
+        setLoadingProgress(80, 'viz.stats');
 
         // 7. Stats.js
         state.stats = initStats();
-        setLoadingProgress(85, 'Connecting to server...');
+        setLoadingProgress(85, 'viz.connecting');
 
         // 8. WebSocket client — derive URL from window.location so the page
         //    works on both default (HTTP 8080 / WS 8765) and Docker (3000/3001)
@@ -207,7 +224,7 @@
 
         // Attempt connection (will fall back to demo mode if server unavailable)
         state.wsClient.connect();
-        setLoadingProgress(95, 'Starting render loop...');
+        setLoadingProgress(95, 'viz.rendering');
 
         // 9. Register the main update loop
         state.scene.onUpdate((delta, elapsed) => {
@@ -216,7 +233,7 @@
 
         // Start rendering
         state.scene.start();
-        setLoadingProgress(100, 'Ready');
+        setLoadingProgress(100, 'viz.ready');
 
         // Hide loading after a brief moment
         setTimeout(hideLoading, 400);
@@ -225,7 +242,7 @@
 
       } catch (err) {
         console.error('[VIZ] Initialization failed:', err);
-        setLoadingProgress(100, 'Error: ' + err.message);
+        setLoadingProgress(100, 'viz.error', { message: err.message });
       }
     }
 

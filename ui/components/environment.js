@@ -1,9 +1,12 @@
 // Room Environment - WiFi DensePose 3D Visualization
 // Grid floor, AP/receiver markers, detection zones, confidence heatmap
 
+import { i18n } from '../utils/i18n.js';
+
 export class Environment {
   constructor(scene) {
     this.scene = scene;
+    this._labelUnsubscribers = [];
     this.group = new THREE.Group();
     this.group.name = 'environment';
 
@@ -26,9 +29,9 @@ export class Environment {
 
     // Detection zones
     this.zones = [
-      { id: 'zone_1', center: [-2, 0, 0], radius: 2, color: 0x0066ff, label: 'Zone 1' },
-      { id: 'zone_2', center: [0, 0, 0], radius: 2, color: 0x00cc66, label: 'Zone 2' },
-      { id: 'zone_3', center: [2, 0, 0], radius: 2, color: 0xff6600, label: 'Zone 3' }
+      { id: 'zone_1', center: [-2, 0, 0], radius: 2, color: 0x0066ff, label: 'ui.zone1' },
+      { id: 'zone_2', center: [0, 0, 0], radius: 2, color: 0x00cc66, label: 'ui.zone2' },
+      { id: 'zone_3', center: [2, 0, 0], radius: 2, color: 0xff6600, label: 'ui.zone3' }
     ];
 
     // Confidence heatmap state
@@ -306,7 +309,7 @@ export class Environment {
       zoneGroup.add(fill);
 
       // Zone label
-      const label = this._createLabel(zone.label, zone.color);
+      const label = this._createLabel(i18n.t(zone.label), zone.color, zone.label);
       label.position.set(zone.center[0], 0.15, zone.center[2] + zone.radius + 0.2);
       label.scale.set(1.0, 0.25, 1);
       zoneGroup.add(label);
@@ -353,7 +356,7 @@ export class Environment {
     this.group.add(this._heatmapGroup);
   }
 
-  _createLabel(text, color) {
+  _createLabel(text, color, key) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     canvas.width = 128;
@@ -366,6 +369,11 @@ export class Environment {
     ctx.fillText(text, canvas.width / 2, canvas.height / 2);
 
     const texture = new THREE.CanvasTexture(canvas);
+    if (key) this._labelUnsubscribers.push(i18n.onLocaleChange(() => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillText(i18n.t(key), canvas.width / 2, canvas.height / 2);
+      texture.needsUpdate = true;
+    }));
     const mat = new THREE.SpriteMaterial({
       map: texture,
       transparent: true,
@@ -464,6 +472,7 @@ export class Environment {
   }
 
   dispose() {
+    this._labelUnsubscribers.forEach(unsubscribe => unsubscribe());
     this.group.traverse((child) => {
       if (child.geometry) child.geometry.dispose();
       if (child.material) {

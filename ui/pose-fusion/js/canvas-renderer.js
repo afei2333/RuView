@@ -3,6 +3,7 @@
  * embedding space visualization, and fusion confidence bars.
  */
 
+import { i18n } from '../../utils/i18n.js';
 import { SKELETON_CONNECTIONS } from './pose-decoder.js';
 
 export class CanvasRenderer {
@@ -127,10 +128,15 @@ export class CanvasRenderer {
     // Confidence label + keypoint count
     if (opts.label) {
       const visCount = keypoints.filter(kp => kp && kp.confidence >= minConf).length;
+      // The skeleton canvas is mirrored over the webcam; keep its text readable.
+      ctx.save();
+      ctx.translate(width, 0);
+      ctx.scale(-1, 1);
       ctx.font = '11px "JetBrains Mono", monospace';
       ctx.fillStyle = jointColor;
       ctx.globalAlpha = 0.8;
-      ctx.fillText(`${opts.label} · ${visCount} joints`, 8, height - 8);
+      ctx.fillText(i18n.t('fusion.joints', { label: opts.label, count: visCount }), 8, height - 8);
+      ctx.restore();
       ctx.globalAlpha = 1;
     }
   }
@@ -150,7 +156,7 @@ export class CanvasRenderer {
       ctx.fillRect(0, 0, canvasW, canvasH);
       ctx.font = '11px "JetBrains Mono", monospace';
       ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.fillText('Waiting for CSI data...', 8, canvasH / 2);
+      ctx.fillText(i18n.t('fusion.waitingCSI'), 8, canvasH / 2);
       return;
     }
 
@@ -169,11 +175,11 @@ export class CanvasRenderer {
     // Axis labels
     ctx.font = '9px "JetBrains Mono", monospace';
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.fillText('Subcarrier →', 4, canvasH - 4);
+    ctx.fillText(i18n.t('fusion.subcarrierAxis'), 4, canvasH - 4);
     ctx.save();
     ctx.translate(canvasW - 4, canvasH - 4);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillText('Time ↑', 0, 0);
+    ctx.fillText(i18n.t('fusion.timeAxis'), 0, 0);
     ctx.restore();
   }
 
@@ -273,9 +279,9 @@ export class CanvasRenderer {
     // Legend
     ctx.font = '9px "JetBrains Mono", monospace';
     const legends = [
-      { color: this.colors.videoEmb, label: 'Video' },
+      { color: this.colors.videoEmb, label: i18n.t('fusion.video') },
       { color: this.colors.csiEmb, label: 'CSI' },
-      { color: this.colors.fusedEmb, label: 'Fused' },
+      { color: this.colors.fusedEmb, label: i18n.t('fusion.fused') },
     ];
     legends.forEach((l, i) => {
       const ly = 12 + i * 14;

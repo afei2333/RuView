@@ -10,6 +10,7 @@ import { CnnEmbedder } from './cnn-embedder.js?v=13';
 import { FusionEngine } from './fusion-engine.js?v=13';
 import { PoseDecoder } from './pose-decoder.js?v=13';
 import { CanvasRenderer } from './canvas-renderer.js?v=13';
+import { i18n } from '../../utils/i18n.js';
 import { withWsTicket } from '../../services/ws-ticket.js';
 
 // === State ===
@@ -81,9 +82,35 @@ const rssiSparkCtx = rssiSparkCanvas ? rssiSparkCanvas.getContext('2d') : null;
 const rssiHistory = [];
 const RSSI_HISTORY_MAX = 80;
 
+// Keep message identities, including backend parameters, for immediate retranslation.
+const labels = new Map();
+function setLabel(element, key, params = {}) {
+  element.removeAttribute('data-i18n');
+  labels.set(element, { key, params });
+  element.textContent = i18n.t(key, params);
+}
+function translateLabels() {
+  for (const [element, { key, params }] of labels) element.textContent = i18n.t(key, params);
+  fpsDisplay.textContent = i18n.t('obs.fps', { count: fps || '--' });
+  if (lastDrawing) drawFrame();
+}
+i18n.onLocaleChange(translateLabels);
+let lastDrawing = null;
+function drawFrame() {
+  const { keypoints, embPoints, heatmap } = lastDrawing;
+  renderer.drawSkeleton(skeletonCtx, keypoints, skeletonCanvas.width, skeletonCanvas.height, {
+    minConfidence: confidenceThreshold,
+    color: mode === 'csi' ? 'amber' : 'green',
+    label: i18n.t({ dual: 'fusion.dual', video: 'fusion.videoMode', csi: 'fusion.csiMode' }[mode])
+  });
+  renderer.drawEmbeddingSpace(embeddingCtx, embPoints, embeddingCanvas.width, embeddingCanvas.height);
+  if (heatmap) renderer.drawCsiHeatmap(csiCtx, heatmap, csiCanvas.width, csiCanvas.height);
+}
+
 // === Initialize ===
 function init() {
   console.log(`[PoseFusion] init() v4 — CsiSimulator=${CsiSimulator.VERSION || 'OLD'}, starting...`);
+  translateLabels();
   resizeCanvases();
   console.log(`[PoseFusion] canvases: skeleton=${skeletonCanvas.width}x${skeletonCanvas.height}, csi=${csiCanvas.width}x${csiCanvas.height}, emb=${embeddingCanvas.width}x${embeddingCanvas.height}`);
   window.addEventListener('resize', resizeCanvases);
@@ -100,7 +127,7 @@ function init() {
   // Pause
   pauseBtn.addEventListener('click', () => {
     isPaused = !isPaused;
-    pauseBtn.textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+    setLabel(pauseBtn, isPaused ? 'fusion.resume' : 'fusion.pause');
     pauseBtn.classList.toggle('active', isPaused);
   });
 
@@ -114,11 +141,11 @@ function init() {
   connectWsBtn.addEventListener('click', async () => {
     const url = wsUrlInput.value.trim();
     if (!url) return;
-    connectWsBtn.textContent = 'Connecting...';
+    setLabel(connectWsBtn, 'fusion.connecting');
     // ADR-272: exchange the stored bearer for a single-use ?ticket= before the
     // upgrade — a browser cannot set an Authorization header on a WebSocket.
     const ok = await csiSimulator.connectLive(await withWsTicket(url));
-    connectWsBtn.textContent = ok ? '✓ Connected' : 'Connect';
+    setLabel(connectWsBtn, ok ? 'fusion.connected' : 'fusion.connect');
     if (ok) {
       connectWsBtn.classList.add('active');
     }
@@ -132,9 +159,8 @@ function init() {
     // Update footer backend label
     const backendEl = document.getElementById('cnn-backend');
     if (backendEl) {
-      backendEl.textContent = ok && visualCnn.useRuVector
-        ? `RuVector WASM v${visualCnn.rvModule.version()} — 6 attention mechanisms`
-        : 'ruvector-cnn (JS fallback)';
+      setLabel(backendEl, ok && visualCnn.useRuVector ? 'fusion.wasm' : 'fusion.fallback',
+        { version: ok && visualCnn.useRuVector ? visualCnn.rvModule.version() : undefined });
     }
   });
   csiCnn.tryLoadWasm(wasmBase);
@@ -166,16 +192,16 @@ function init() {
   // is decoded. Only the verified-frame callback promotes the label to LIVE.
   csiSimulator.onVerifiedFrame = () => {
     if (connectWsBtn) {
-      connectWsBtn.textContent = '✓ Live ESP32';
+      setLabel(connectWsBtn, 'fusion.liveESP32');
       connectWsBtn.classList.add('active');
     }
-    statusLabel.textContent = 'LIVE CSI';
+    setLabel(statusLabel, 'fusion.liveCSI');
     statusDot.classList.remove('offline');
   };
   withWsTicket(defaultWsUrl).then(u => csiSimulator.connectLive(u)).then(ok => {
     if (ok) {
       // Socket open, but no verified frame yet — stay honest.
-      statusLabel.textContent = 'SYNTHETIC';
+      setLabel(statusLabel, 'fusion.synthetic');
     }
   });
 
@@ -191,11 +217,11 @@ async function startCamera() {
   const ok = await videoCapture.start();
   if (ok) {
     statusDot.classList.remove('offline');
-    statusLabel.textContent = 'LIVE';
+    setLabel(statusLabel, 'fusion.live');
     resizeCanvases();
   } else {
     cameraPrompt.style.display = 'flex';
-    cameraPrompt.querySelector('p').textContent = 'Camera access denied. Try CSI-only mode.';
+    setLabel(cameraPrompt.querySelector('p'), 'fusion.cameraDenied');
   }
 }
 
@@ -210,11 +236,11 @@ function updateModeUI() {
   }
 
   // Update mode label in both the overlay and the camera prompt
-  const labelMap = { dual: 'DUAL FUSION', video: 'VIDEO ONLY', csi: 'CSI ONLY' };
+  const labelMap = { dual: 'fusion.dual', video: 'fusion.videoMode', csi: 'fusion.csiMode' };
   const modeLabel = document.getElementById('mode-label');
   const promptLabel = document.getElementById('prompt-mode-label');
-  if (modeLabel) modeLabel.textContent = labelMap[mode] || mode;
-  if (promptLabel) promptLabel.textContent = labelMap[mode] || mode;
+  if (modeLabel) setLabel(modeLabel, labelMap[mode]);
+  if (promptLabel) setLabel(promptLabel, labelMap[mode]);
 }
 
 function resizeCanvases() {
@@ -289,10 +315,6 @@ function mainLoop(timestamp) {
       true
     );
 
-    // Draw CSI heatmap
-    const heatmap = csiSimulator.getHeatmapData();
-    renderer.drawCsiHeatmap(csiCtx, heatmap, csiCanvas.width, csiCanvas.height);
-
     latency.csi = performance.now() - t0;
   }
 
@@ -325,17 +347,10 @@ function mainLoop(timestamp) {
 
   const keypoints = poseDecoder.decode(fusedEmb, motionRegion, elapsed, csiState);
 
-  // --- Render Skeleton ---
-  const labelMap = { dual: 'DUAL FUSION', video: 'VIDEO ONLY', csi: 'CSI ONLY' };
-  renderer.drawSkeleton(skeletonCtx, keypoints, skeletonCanvas.width, skeletonCanvas.height, {
-    minConfidence: confidenceThreshold,
-    color: mode === 'csi' ? 'amber' : 'green',
-    label: labelMap[mode]
-  });
-
-  // --- Render Embedding Space ---
+  // --- Render current data without advancing it on a language change. ---
   const embPoints = fusionEngine.getEmbeddingPoints();
-  renderer.drawEmbeddingSpace(embeddingCtx, embPoints, embeddingCanvas.width, embeddingCanvas.height);
+  lastDrawing = { keypoints, embPoints, heatmap: mode !== 'video' ? csiSimulator.getHeatmapData() : null };
+  drawFrame();
 
   // --- Update UI ---
   latency.total = performance.now() - totalStart;
@@ -346,7 +361,7 @@ function mainLoop(timestamp) {
     fps = Math.round(frameCount * 1000 / (timestamp - lastFpsTime));
     lastFpsTime = timestamp;
     frameCount = 0;
-    fpsDisplay.textContent = `${fps} FPS`;
+    fpsDisplay.textContent = i18n.t('obs.fps', { count: fps });
   }
 
   // Fusion bars
@@ -421,12 +436,12 @@ function updateRssi(dbm) {
 
   // Quality label
   let quality;
-  if (clamped > -50) quality = 'Excellent';
-  else if (clamped > -60) quality = 'Good';
-  else if (clamped > -70) quality = 'Fair';
-  else if (clamped > -80) quality = 'Weak';
-  else quality = 'Poor';
-  rssiQualityEl.textContent = quality;
+  if (clamped > -50) quality = 'fusion.excellent';
+  else if (clamped > -60) quality = 'fusion.good';
+  else if (clamped > -70) quality = 'fusion.fair';
+  else if (clamped > -80) quality = 'fusion.weak';
+  else quality = 'fusion.poor';
+  setLabel(rssiQualityEl, quality);
 
   // Color the dBm value based on quality
   if (clamped > -60) rssiValueEl.style.color = 'var(--green-glow)';

@@ -1,9 +1,12 @@
 // Real-time CSI Signal Visualization - WiFi DensePose
 // Amplitude heatmap, Phase plot, Doppler spectrum, Motion energy
 
+import { i18n } from '../utils/i18n.js';
+
 export class SignalVisualization {
   constructor(scene) {
     this.scene = scene;
+    this._labelUnsubscribers = [];
     this.group = new THREE.Group();
     this.group.name = 'signal-visualization';
     this.group.position.set(-5.5, 0, -3);
@@ -226,14 +229,15 @@ export class SignalVisualization {
   _buildLabels() {
     // Create text labels using canvas textures
     const labels = [
-      { text: 'CSI AMPLITUDE', pos: [0, 5.2, 0], parent: this._heatmapGroup },
-      { text: 'PHASE', pos: [0, 0.7, 0], parent: this._phaseGroup },
-      { text: 'DOPPLER SPECTRUM', pos: [0, 0.8, 0], parent: this._dopplerGroup },
-      { text: 'MOTION', pos: [0, 0.55, 0], parent: this._motionGroup }
+      { key: 'viz.amplitude', pos: [0, 5.2, 0], parent: this._heatmapGroup },
+      { key: 'viz.phase', pos: [0, 0.7, 0], parent: this._phaseGroup },
+      { key: 'viz.doppler', pos: [0, 0.8, 0], parent: this._dopplerGroup },
+      { key: 'viz.motion', pos: [0, 0.55, 0], parent: this._motionGroup }
     ];
 
     for (const label of labels) {
-      const sprite = this._createTextSprite(label.text, {
+      const sprite = this._createTextSprite(i18n.t(label.key), {
+        key: label.key,
         fontSize: 14,
         color: '#5588aa',
         bgColor: 'transparent'
@@ -266,6 +270,11 @@ export class SignalVisualization {
     ctx.fillText(text, canvas.width / 2, canvas.height / 2);
 
     const texture = new THREE.CanvasTexture(canvas);
+    if (opts.key) this._labelUnsubscribers.push(i18n.onLocaleChange(() => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillText(i18n.t(opts.key), canvas.width / 2, canvas.height / 2);
+      texture.needsUpdate = true;
+    }));
     texture.needsUpdate = true;
 
     const mat = new THREE.SpriteMaterial({
@@ -455,6 +464,7 @@ export class SignalVisualization {
   }
 
   dispose() {
+    this._labelUnsubscribers.forEach(unsubscribe => unsubscribe());
     this.group.traverse((child) => {
       if (child.geometry) child.geometry.dispose();
       if (child.material) {
